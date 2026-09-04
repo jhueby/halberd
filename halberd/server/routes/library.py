@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from halberd.library.loader import load_all_atomics, load_all_chains, load_atomic, load_chain
 from halberd.library.importer import import_chain, FileImporter, URLImporter
-from halberd.server.schemas import TechniqueInfo, ChainInfo, ImportRequest
+from halberd.server.schemas import TechniqueInfo, ChainInfo, ImportRequest, CleanupRequest
 
 router = APIRouter(prefix="/api/library", tags=["library"])
 
@@ -76,6 +76,46 @@ def update_library():
         "new_chains": result.new_chains,
         "updated_chains": result.updated_chains,
         "summary": result.summary(),
+    }
+
+
+@router.post("/cleanup")
+def cleanup_endpoint(req: CleanupRequest):
+    from halberd.agent.cleanup import clean_technique, clean_all
+
+    if not req.technique_id and not req.all:
+        raise HTTPException(status_code=400, detail="Specify technique_id or set all: true")
+
+    try:
+        if req.all:
+            report = clean_all(check_only=req.check_only)
+        else:
+            report = clean_technique(req.technique_id, check_only=req.check_only)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "status": "checked" if req.check_only else "cleaned",
+        "actions": [
+            {
+                "technique_id": a.technique_id,
+                "test_name": a.test_name,
+                "status": a.status,
+                "command": a.command,
+                "output": a.output,
+                "error": a.error,
+            }
+            for a in report.actions
+        ],
+        "artifacts": [
+            {
+                "technique_id": a.technique_id,
+                "pattern": a.pattern,
+                "found": a.found,
+            }
+            for a in report.artifacts
+        ],
+        "summary": report.summary(),
     }
 
 

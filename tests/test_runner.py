@@ -37,6 +37,51 @@ class TestRunner:
         assert len(results) == 0 or results[0].status == "error"
 
 
+class TestCleanup:
+    def test_clean_technique_check_only(self):
+        from halberd.agent.cleanup import clean_technique
+
+        report = clean_technique("T1053.003", check_only=True)
+        assert len(report.actions) >= 1
+        has_cleanup = any(a.status == "skipped" and a.command for a in report.actions)
+        assert has_cleanup
+
+    def test_clean_technique_missing(self):
+        from halberd.agent.cleanup import clean_technique
+
+        report = clean_technique("T9999.999")
+        assert len(report.actions) == 1
+        assert report.actions[0].status == "failed"
+
+    def test_clean_all_check_only(self):
+        from halberd.agent.cleanup import clean_all
+
+        report = clean_all(check_only=True)
+        assert len(report.actions) >= 15
+
+    def test_clean_technique_no_cleanup(self):
+        from halberd.agent.cleanup import clean_technique
+
+        report = clean_technique("T1082", check_only=True)
+        assert all(a.status in ("skipped", "no-cleanup") for a in report.actions)
+
+    def test_clean_technique_runs_cleanup(self):
+        from halberd.agent.cleanup import clean_technique
+
+        report = clean_technique("T1053.003")
+        assert any(a.status in ("cleaned", "failed") for a in report.actions)
+
+    def test_cleanup_report_summary(self):
+        from halberd.agent.cleanup import CleanupReport, CleanupAction
+
+        report = CleanupReport(actions=[
+            CleanupAction(technique_id="T1", test_name="t", status="cleaned"),
+            CleanupAction(technique_id="T2", test_name="t", status="no-cleanup"),
+        ])
+        assert "1 cleaned" in report.summary()
+        assert "1 have no cleanup command" in report.summary()
+
+
 class TestSandbox:
     def test_risk_check(self):
         from halberd.library.loader import load_atomic

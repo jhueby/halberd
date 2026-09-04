@@ -57,6 +57,16 @@
         Update Library
     </button>
     <span id="update-lib-spinner" class="htmx-indicator" style="color:var(--accent);">Checking...</span>
+    <button class="btn btn-danger" id="cleanup-btn"
+            hx-post="/api/library/cleanup"
+            hx-vals='{"all": true}'
+            hx-target="#cleanup-result"
+            hx-swap="innerHTML"
+            hx-indicator="#cleanup-spinner">
+        Remediate All
+    </button>
+    <span id="cleanup-spinner" class="htmx-indicator" style="color:var(--red);">Running cleanup...</span>
 </div>
 <div id="update-lib-result" class="update-result"></div>
+<div id="cleanup-result" class="update-result"></div>
 {% endblock %}

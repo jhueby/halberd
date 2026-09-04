@@ -86,3 +86,24 @@ class TestAPI:
         resp = client.get("/import")
         assert resp.status_code == 200
         assert "Import" in resp.text
+
+    def test_cleanup_check_only(self, client):
+        resp = client.post("/api/library/cleanup", json={
+            "technique_id": "T1082",
+            "check_only": True,
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "checked"
+        assert "actions" in data
+
+    def test_cleanup_all(self, client):
+        resp = client.post("/api/library/cleanup", json={"all": True})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "cleaned"
+        assert len(data["actions"]) >= 15
+
+    def test_cleanup_requires_target(self, client):
+        resp = client.post("/api/library/cleanup", json={})
+        assert resp.status_code == 400

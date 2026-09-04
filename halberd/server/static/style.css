@@ -278,6 +278,13 @@ code {
 
 .btn-secondary:hover { background: var(--border); }
 
+.btn-danger {
+    background: var(--red);
+    color: #fff;
+}
+
+.btn-danger:hover { background: #dc2626; }
+
 .btn-disabled {
     background: var(--border);
     color: var(--text-muted);
@@ -302,6 +309,7 @@ code {
 .htmx-indicator { display: none; font-size: 0.875rem; }
 .htmx-request .htmx-indicator { display: inline; }
 .htmx-request #update-lib-btn { opacity: 0.5; pointer-events: none; }
+.htmx-request #cleanup-btn { opacity: 0.5; pointer-events: none; }
 
 .footer {
     text-align: center;

@@ -16,7 +16,8 @@ tests:
       echo "Deleted: $TMPDIR/evidence.txt"
       shred -u "$TMPDIR" 2>/dev/null || rm -rf "$TMPDIR"
       echo "indicator-removal-complete"
-    cleanup: null
+    cleanup: |
+      rm -rf /tmp/halberd-test-* 2>/dev/null || true
     expected_artifacts:
       - type: process
         value: "shred"

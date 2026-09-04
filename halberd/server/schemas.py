@@ -89,6 +89,12 @@ class ChainInfo(BaseModel):
     import_source: str | None = None
 
 
+class CleanupRequest(BaseModel):
+    technique_id: str | None = None
+    all: bool = False
+    check_only: bool = False
+
+
 class CoverageEntry(BaseModel):
     technique_id: str
     technique_name: str

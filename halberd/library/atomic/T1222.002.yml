@@ -16,7 +16,8 @@ tests:
       echo "After:  $(ls -la $TMPFILE)"
       rm -f "$TMPFILE"
       echo "permission-modification-complete"
-    cleanup: null
+    cleanup: |
+      rm -f /tmp/halberd-chmod-* 2>/dev/null || true
     expected_artifacts:
       - type: process
         value: "chmod"

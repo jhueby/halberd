@@ -222,6 +222,71 @@ def show_coverage():
     console.print(f"\n[bold]Total:[/] {len(techniques)} techniques across {len(tactics)} tactics")
 
 
+@cli.command("clean")
+@click.argument("technique_id", required=False)
+@click.option("--all", "clean_all_flag", is_flag=True, help="Clean all techniques")
+@click.option("--check", "check_only", is_flag=True, help="Show what would be cleaned without running")
+def clean(technique_id: str | None, clean_all_flag: bool, check_only: bool):
+    """Run cleanup/remediation for test payloads.
+
+    Runs cleanup commands defined in each technique to remove artifacts
+    left by test executions. Also scans for residual files matching
+    known artifact patterns.
+
+    Examples:
+        halberd clean T1053.003          Clean a specific technique
+        halberd clean --all              Clean all techniques
+        halberd clean --all --check      Preview what would be cleaned
+    """
+    from halberd.agent.cleanup import clean_technique, clean_all as do_clean_all
+
+    if not technique_id and not clean_all_flag:
+        console.print("[red]Specify a technique ID or use --all[/]")
+        return
+
+    if check_only:
+        console.print("[bold]Cleanup check (dry run):[/]")
+    else:
+        console.print("[bold]Running cleanup/remediation...[/]")
+
+    if clean_all_flag:
+        report = do_clean_all(check_only=check_only)
+    else:
+        report = clean_technique(technique_id, check_only=check_only)
+
+    table = Table(title="Cleanup Results")
+    table.add_column("Technique", style="cyan")
+    table.add_column("Test")
+    table.add_column("Status")
+    table.add_column("Command", max_width=50, style="dim")
+
+    status_styles = {
+        "cleaned": "green",
+        "failed": "red",
+        "skipped": "magenta",
+        "no-cleanup": "dim",
+    }
+
+    for a in report.actions:
+        style = status_styles.get(a.status, "white")
+        table.add_row(
+            a.technique_id,
+            a.test_name,
+            f"[{style}]{a.status}[/]",
+            a.command[:50] if a.command else "-",
+        )
+    console.print(table)
+
+    if report.artifacts:
+        console.print(f"\n[yellow]Residual artifacts detected:[/]")
+        for hit in report.artifacts:
+            console.print(f"  [{hit.technique_id}] {hit.pattern}")
+            for f in hit.found:
+                console.print(f"    [red]{f}[/]")
+
+    console.print(f"\n[bold]{report.summary()}[/]")
+
+
 @cli.command("update")
 @click.option("--check", "check_only", is_flag=True, help="Check only, don't install")
 def update(check_only: bool):
