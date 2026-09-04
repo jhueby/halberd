@@ -263,5 +263,38 @@ def update(check_only: bool):
         console.print("Try manually: [cyan]pip install --upgrade halberd-bas[/]")
 
 
+@cli.command("update-library")
+def update_library_cmd():
+    """Pull the latest techniques and chains from GitHub."""
+    from halberd.updater import update_library
+
+    console.print("[bold]Updating library from GitHub...[/]")
+
+    try:
+        result = update_library()
+    except Exception as e:
+        console.print(f"[red]Error:[/] {e}")
+        return
+
+    if result.total_changes == 0:
+        console.print("[green]Library is up to date.[/]")
+        return
+
+    if result.new_atomics:
+        for name in result.new_atomics:
+            console.print(f"  [green]+[/] {name}")
+    if result.updated_atomics:
+        for name in result.updated_atomics:
+            console.print(f"  [yellow]~[/] {name}")
+    if result.new_chains:
+        for name in result.new_chains:
+            console.print(f"  [green]+[/] {name}")
+    if result.updated_chains:
+        for name in result.updated_chains:
+            console.print(f"  [yellow]~[/] {name}")
+
+    console.print(f"\n[bold]{result.summary()}[/]")
+
+
 if __name__ == "__main__":
     cli()

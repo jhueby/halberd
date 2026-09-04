@@ -3,6 +3,18 @@
 {% block content %}
 <h1>Test Library</h1>
 
+<div class="actions" style="margin-bottom: 1.5rem;">
+    <button class="btn" id="update-lib-btn"
+            hx-post="/api/library/update"
+            hx-target="#update-lib-result"
+            hx-swap="innerHTML"
+            hx-indicator="#update-lib-spinner">
+        Update Library
+    </button>
+    <span id="update-lib-spinner" class="htmx-indicator" style="color:var(--accent);">Pulling from GitHub...</span>
+</div>
+<div id="update-lib-result" class="update-result"></div>
+
 <h2>Atomic Techniques ({{ techniques | length }})</h2>
 <div class="table-wrap">
 <table>

@@ -292,6 +292,17 @@ code {
     padding: 2rem !important;
 }
 
+.update-result {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.update-result:empty { display: none; }
+
+.htmx-indicator { display: none; font-size: 0.875rem; }
+.htmx-request .htmx-indicator { display: inline; }
+.htmx-request #update-lib-btn { opacity: 0.5; pointer-events: none; }
+
 .footer {
     text-align: center;
     padding: 2rem;

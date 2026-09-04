@@ -49,5 +49,14 @@
 <div class="actions">
     <a href="/library" class="btn">Browse Library</a>
     <a href="/import" class="btn btn-secondary">Import Chain</a>
+    <button class="btn btn-secondary" id="update-lib-btn"
+            hx-post="/api/library/update"
+            hx-target="#update-lib-result"
+            hx-swap="innerHTML"
+            hx-indicator="#update-lib-spinner">
+        Update Library
+    </button>
+    <span id="update-lib-spinner" class="htmx-indicator" style="color:var(--accent);">Checking...</span>
 </div>
+<div id="update-lib-result" class="update-result"></div>
 {% endblock %}

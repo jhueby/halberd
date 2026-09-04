@@ -93,6 +93,103 @@ def check_for_update(force: bool = False) -> UpdateInfo | None:
     return UpdateInfo(current=current, latest=latest, url=html_url, is_newer=is_newer)
 
 
+@dataclass
+class LibraryUpdateResult:
+    new_atomics: list[str]
+    updated_atomics: list[str]
+    new_chains: list[str]
+    updated_chains: list[str]
+
+    @property
+    def total_changes(self) -> int:
+        return len(self.new_atomics) + len(self.updated_atomics) + len(self.new_chains) + len(self.updated_chains)
+
+    def summary(self) -> str:
+        parts = []
+        if self.new_atomics:
+            parts.append(f"{len(self.new_atomics)} new techniques")
+        if self.updated_atomics:
+            parts.append(f"{len(self.updated_atomics)} updated techniques")
+        if self.new_chains:
+            parts.append(f"{len(self.new_chains)} new chains")
+        if self.updated_chains:
+            parts.append(f"{len(self.updated_chains)} updated chains")
+        return ", ".join(parts) if parts else "Library is up to date"
+
+
+def _github_api(path: str) -> dict | list | None:
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/{path}"
+    req = urllib.request.Request(
+        url,
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "halberd-bas"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read())
+    except (urllib.error.URLError, OSError, json.JSONDecodeError):
+        return None
+
+
+def _download_raw(path: str) -> str | None:
+    url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/{path}"
+    req = urllib.request.Request(url, headers={"User-Agent": "halberd-bas"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.read().decode("utf-8")
+    except (urllib.error.URLError, OSError):
+        return None
+
+
+def _sync_directory(github_path: str, local_dir: Path, extension: str = ".yml") -> tuple[list[str], list[str]]:
+    """Sync a GitHub directory to a local directory. Returns (new_files, updated_files)."""
+    contents = _github_api(f"contents/{github_path}")
+    if not contents or not isinstance(contents, list):
+        return [], []
+
+    new_files = []
+    updated_files = []
+
+    remote_files = [f for f in contents if f.get("name", "").endswith(extension)]
+
+    for file_info in remote_files:
+        name = file_info["name"]
+        remote_sha = file_info.get("sha", "")
+        download_path = file_info.get("path", f"{github_path}/{name}")
+        local_path = local_dir / name
+
+        if local_path.exists():
+            local_content = local_path.read_text()
+            remote_content = _download_raw(download_path)
+            if remote_content is None:
+                continue
+            if local_content.strip() != remote_content.strip():
+                local_path.write_text(remote_content)
+                updated_files.append(name)
+        else:
+            remote_content = _download_raw(download_path)
+            if remote_content is None:
+                continue
+            local_path.write_text(remote_content)
+            new_files.append(name)
+
+    return new_files, updated_files
+
+
+def update_library() -> LibraryUpdateResult:
+    """Pull the latest techniques and chains from the GitHub repo."""
+    from halberd.library.loader import ATOMIC_DIR, CHAINS_DIR
+
+    new_at, upd_at = _sync_directory("halberd/library/atomic", ATOMIC_DIR)
+    new_ch, upd_ch = _sync_directory("halberd/library/chains", CHAINS_DIR)
+
+    return LibraryUpdateResult(
+        new_atomics=new_at,
+        updated_atomics=upd_at,
+        new_chains=new_ch,
+        updated_chains=upd_ch,
+    )
+
+
 def startup_update_check() -> str | None:
     """Non-blocking update check for CLI startup. Returns a message or None."""
     try:

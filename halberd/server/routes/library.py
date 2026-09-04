@@ -60,6 +60,25 @@ def get_chain(chain_id: str):
     return c.model_dump()
 
 
+@router.post("/update")
+def update_library():
+    from halberd.updater import update_library as do_update
+
+    try:
+        result = do_update()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "status": "updated" if result.total_changes > 0 else "up_to_date",
+        "new_atomics": result.new_atomics,
+        "updated_atomics": result.updated_atomics,
+        "new_chains": result.new_chains,
+        "updated_chains": result.updated_chains,
+        "summary": result.summary(),
+    }
+
+
 @router.post("/import")
 def import_chain_endpoint(req: ImportRequest):
     backend = None
