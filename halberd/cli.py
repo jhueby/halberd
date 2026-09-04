@@ -12,9 +12,14 @@ console = Console()
 
 @click.group()
 @click.version_option(version=__version__, prog_name="halberd")
-def cli():
+@click.pass_context
+def cli(ctx):
     """Halberd BAS - Open-source Breach and Attack Simulation"""
-    pass
+    if ctx.invoked_subcommand != "update":
+        from halberd.updater import startup_update_check
+        msg = startup_update_check()
+        if msg:
+            console.print(f"[yellow]{msg}[/]\n")
 
 
 @cli.command("list")
@@ -215,6 +220,47 @@ def show_coverage():
         )
     console.print(table)
     console.print(f"\n[bold]Total:[/] {len(techniques)} techniques across {len(tactics)} tactics")
+
+
+@cli.command("update")
+@click.option("--check", "check_only", is_flag=True, help="Check only, don't install")
+def update(check_only: bool):
+    """Check for updates and optionally install the latest version."""
+    from halberd.updater import check_for_update
+
+    console.print(f"[bold]Current version:[/] v{__version__}")
+    console.print("Checking for updates...")
+
+    info = check_for_update(force=True)
+
+    if info is None:
+        console.print("[green]You are up to date.[/]")
+        return
+
+    if not info.is_newer:
+        console.print("[green]You are up to date.[/]")
+        return
+
+    console.print(f"[yellow]Update available:[/] v{info.current} -> [bold]v{info.latest}[/]")
+    console.print(f"Release: {info.url}")
+
+    if check_only:
+        console.print("\nTo update, run:")
+        console.print("  [cyan]pip install --upgrade halberd-bas[/]")
+        return
+
+    console.print("\nInstalling update...")
+    import subprocess
+    result = subprocess.run(
+        ["pip", "install", "--upgrade", "halberd-bas"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        console.print(f"[green]Updated to v{info.latest}[/]")
+    else:
+        console.print(f"[red]Update failed:[/] {result.stderr.strip()}")
+        console.print("Try manually: [cyan]pip install --upgrade halberd-bas[/]")
 
 
 if __name__ == "__main__":
