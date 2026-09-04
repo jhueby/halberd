@@ -1,0 +1,22 @@
+id: T1518.001
+name: "Security Software Discovery"
+tactic: discovery
+technique: "Software Discovery: Security Software Discovery"
+platforms: [linux, windows]
+risk: safe
+description: "Identifies installed security software and EDR agents"
+tests:
+  - name: "Detect security tools"
+    executor: bash
+    command: |
+      echo "=== EDR/AV Processes ==="
+      ps aux 2>/dev/null | grep -iE 'falcon|crowdstrike|cortex|traps|sentinel|defender|sophos|carbon|cylance|endgame|elastic-agent|osquery|wazuh|auditd' | grep -v grep || echo "none detected"
+      echo "=== Security Services ==="
+      systemctl list-units --type=service --state=running 2>/dev/null | grep -iE 'falcon|cortex|sentinel|defender|sophos|carbon|cylance|wazuh|auditd|apparmor|selinux' || echo "none detected"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "ps"
+      - type: process
+        value: "grep"
+    detection_notes: "Grepping for EDR process names is a common pre-attack step; EDR should flag process enumeration targeting security tools"

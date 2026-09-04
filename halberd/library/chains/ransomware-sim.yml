@@ -1,0 +1,17 @@
+id: chain-ransomware-sim
+name: "Ransomware Simulation"
+description: "Simulates a ransomware kill chain: discovery, credential access, permission changes, evidence destruction"
+mitre_tactics: [discovery, credential-access, defense-evasion]
+tags: [ransomware, high-impact, full-chain]
+steps:
+  - technique: T1082
+    delay_after: 3
+  - technique: T1087.001
+    delay_after: 3
+  - technique: T1003.008
+    test_index: 0
+    delay_after: 5
+  - technique: T1222.002
+    delay_after: 3
+  - technique: T1070.004
+    delay_after: 0

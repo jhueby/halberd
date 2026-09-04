@@ -1,0 +1,24 @@
+id: T1082
+name: "System Information Discovery"
+tactic: discovery
+technique: "System Information Discovery"
+platforms: [linux, windows]
+risk: safe
+description: "Collects system information to simulate attacker reconnaissance"
+tests:
+  - name: "Linux system enumeration"
+    executor: bash
+    command: |
+      echo "=== Hostname ===" && hostname
+      echo "=== Kernel ===" && uname -a
+      echo "=== OS Release ===" && cat /etc/os-release 2>/dev/null || echo "N/A"
+      echo "=== CPU ===" && nproc
+      echo "=== Memory ===" && free -h 2>/dev/null || echo "N/A"
+      echo "=== Disk ===" && df -h / 2>/dev/null
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "uname"
+      - type: process
+        value: "hostname"
+    detection_notes: "Individual commands are benign; rapid sequential execution of multiple recon commands from a single parent is suspicious"

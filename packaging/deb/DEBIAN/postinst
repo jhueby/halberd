@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+pip3 install --break-system-packages /usr/lib/halberd 2>/dev/null || pip3 install /usr/lib/halberd
+
+echo "Halberd BAS installed. Run 'halberd --help' to get started."

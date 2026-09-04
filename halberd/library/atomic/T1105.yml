@@ -1,0 +1,38 @@
+id: T1105
+name: "Ingress Tool Transfer"
+tactic: command-and-control
+technique: "Ingress Tool Transfer"
+platforms: [linux]
+risk: medium
+description: "Simulates downloading a tool from a remote server using common utilities"
+tests:
+  - name: "Download via curl"
+    executor: bash
+    command: |
+      TMPFILE=$(mktemp /tmp/halberd-download-XXXXXX)
+      curl -s -o "$TMPFILE" --max-time 5 https://example.com/robots.txt 2>/dev/null || echo "curl-failed"
+      echo "Downloaded to: $TMPFILE ($(wc -c < "$TMPFILE" 2>/dev/null || echo 0) bytes)"
+      rm -f "$TMPFILE"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "curl"
+      - type: network
+        value: "HTTP GET to external host"
+      - type: file_modification
+        value: "/tmp/halberd-download-*"
+    detection_notes: "EDR should correlate curl/wget downloads to temp directories with subsequent execution attempts"
+  - name: "Download via wget"
+    executor: bash
+    command: |
+      TMPFILE=$(mktemp /tmp/halberd-download-XXXXXX)
+      wget -q -O "$TMPFILE" --timeout=5 https://example.com/robots.txt 2>/dev/null || echo "wget-failed"
+      echo "Downloaded to: $TMPFILE ($(wc -c < "$TMPFILE" 2>/dev/null || echo 0) bytes)"
+      rm -f "$TMPFILE"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "wget"
+      - type: network
+        value: "HTTP GET to external host"
+    detection_notes: "wget to a temp path followed by chmod +x is a classic tool staging pattern"

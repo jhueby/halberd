@@ -1,0 +1,25 @@
+id: T1222.002
+name: "File Permission Modification"
+tactic: defense-evasion
+technique: "File and Directory Permissions Modification: Linux and Mac"
+platforms: [linux, macos]
+risk: low
+description: "Modifies file permissions to simulate privilege escalation preparation"
+tests:
+  - name: "chmod test files"
+    executor: bash
+    command: |
+      TMPFILE=$(mktemp /tmp/halberd-chmod-XXXXXX)
+      echo "test-payload" > "$TMPFILE"
+      echo "Before: $(ls -la $TMPFILE)"
+      chmod 777 "$TMPFILE"
+      echo "After:  $(ls -la $TMPFILE)"
+      rm -f "$TMPFILE"
+      echo "permission-modification-complete"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "chmod"
+      - type: file_modification
+        value: "/tmp/halberd-chmod-*"
+    detection_notes: "chmod 777 on executables or in sensitive directories is suspicious; EDR should flag world-writable permission changes"

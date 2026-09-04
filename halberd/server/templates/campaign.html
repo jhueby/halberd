@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Campaigns - Halberd BAS{% endblock %}
+{% block content %}
+<h1>Campaigns</h1>
+
+<div class="card">
+    <h3>Create Campaign</h3>
+    <form id="campaign-form" hx-post="/api/campaigns" hx-target="#campaign-result" hx-swap="innerHTML">
+        <div class="form-group">
+            <label for="name">Campaign Name</label>
+            <input type="text" id="name" name="name" required placeholder="e.g. Weekly Discovery Test">
+        </div>
+        <div class="form-group">
+            <label for="campaign_type">Type</label>
+            <select id="campaign_type" name="campaign_type">
+                <option value="technique">Single Technique</option>
+                <option value="chain">Attack Chain</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="target_ids">Target IDs (comma-separated)</label>
+            <input type="text" id="target_ids" name="target_ids" placeholder="e.g. T1082 or chain-dns-exfil">
+        </div>
+        <button type="submit" class="btn">Create Campaign</button>
+    </form>
+    <div id="campaign-result"></div>
+</div>
+
+<h2>Campaign History</h2>
+<div class="table-wrap">
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Created</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in campaigns %}
+        <tr>
+            <td>{{ c.id }}</td>
+            <td>{{ c.name }}</td>
+            <td>{{ c.campaign_type }}</td>
+            <td><span class="status-{{ c.status }}">{{ c.status }}</span></td>
+            <td>{{ c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not campaigns %}
+        <tr><td colspan="5" class="empty">No campaigns yet</td></tr>
+        {% endif %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

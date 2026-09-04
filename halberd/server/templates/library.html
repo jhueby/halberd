@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Library - Halberd BAS{% endblock %}
+{% block content %}
+<h1>Test Library</h1>
+
+<h2>Atomic Techniques ({{ techniques | length }})</h2>
+<div class="table-wrap">
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Tactic</th>
+            <th>Platforms</th>
+            <th>Risk</th>
+            <th>Tests</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in techniques %}
+        <tr>
+            <td><code>{{ t.id }}</code></td>
+            <td>{{ t.name }}</td>
+            <td>{{ t.tactic }}</td>
+            <td>{{ t.platforms | map(attribute='value') | join(', ') }}</td>
+            <td><span class="risk-badge risk-{{ t.risk.value }}">{{ t.risk.value }}</span></td>
+            <td>{{ t.tests | length }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<h2>Attack Chains ({{ chains | length }})</h2>
+<div class="table-wrap">
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Tactics</th>
+            <th>Steps</th>
+            <th>Source</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in chains %}
+        <tr>
+            <td><code>{{ c.id }}</code></td>
+            <td>{{ c.name }}</td>
+            <td>{{ c.description }}</td>
+            <td>{{ c.mitre_tactics | join(', ') }}</td>
+            <td>{{ c.steps | length }}</td>
+            <td>{{ c.import_source or 'built-in' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

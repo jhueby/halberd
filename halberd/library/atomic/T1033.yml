@@ -1,0 +1,22 @@
+id: T1033
+name: "System Owner/User Discovery"
+tactic: discovery
+technique: "System Owner/User Discovery"
+platforms: [linux, windows]
+risk: safe
+description: "Identifies the current user and logged-in users"
+tests:
+  - name: "User enumeration"
+    executor: bash
+    command: |
+      echo "=== Current User ===" && whoami
+      echo "=== User ID ===" && id
+      echo "=== Logged In ===" && w 2>/dev/null || who
+      echo "=== Last Logins ===" && last -n 5 2>/dev/null || echo "N/A"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "whoami"
+      - type: process
+        value: "w"
+    detection_notes: "User discovery commands are common; suspicious when executed by a service account or in a burst with other discovery commands"

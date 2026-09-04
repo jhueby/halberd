@@ -1,0 +1,21 @@
+id: T1087.001
+name: "Local Account Enumeration"
+tactic: discovery
+technique: "Account Discovery: Local Account"
+platforms: [linux, windows]
+risk: safe
+description: "Enumerates local user accounts"
+tests:
+  - name: "List local accounts"
+    executor: bash
+    command: |
+      echo "=== Users with shells ===" && grep -v '/nologin\|/false' /etc/passwd
+      echo "=== Groups ===" && cat /etc/group | head -20
+      echo "=== Sudoers ===" && grep -v '^#' /etc/sudoers 2>/dev/null || echo "access denied"
+    cleanup: null
+    expected_artifacts:
+      - type: file_read
+        value: "/etc/passwd"
+      - type: file_read
+        value: "/etc/group"
+    detection_notes: "Reading /etc/sudoers from a non-admin process is a strong indicator of privilege escalation recon"

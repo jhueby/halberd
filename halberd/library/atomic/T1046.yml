@@ -1,0 +1,22 @@
+id: T1046
+name: "Network Service Scan"
+tactic: discovery
+technique: "Network Service Discovery"
+platforms: [linux]
+risk: medium
+description: "Performs a basic port scan to simulate network service discovery"
+tests:
+  - name: "Bash port scan (no nmap)"
+    executor: bash
+    command: |
+      TARGET="127.0.0.1"
+      echo "Scanning $TARGET for common ports..."
+      for PORT in 22 80 443 3306 5432 8080 8443; do
+        (echo >/dev/tcp/$TARGET/$PORT) 2>/dev/null && echo "  $PORT: open" || echo "  $PORT: closed"
+      done
+      echo "scan-complete"
+    cleanup: null
+    expected_artifacts:
+      - type: network
+        value: "TCP connection attempts to multiple ports"
+    detection_notes: "Rapid TCP connection attempts to multiple ports on a single host is a clear scanning pattern; EDR should flag sequential SYN attempts"

@@ -1,0 +1,19 @@
+id: T1027
+name: "Base64 Obfuscation"
+tactic: defense-evasion
+technique: "Obfuscated Files or Information"
+platforms: [linux, windows]
+risk: safe
+description: "Encodes and decodes a payload using base64 to simulate command obfuscation"
+tests:
+  - name: "Base64 encode/decode execution"
+    executor: bash
+    command: |
+      PAYLOAD=$(echo 'echo "halberd-obfuscation-test: $(whoami)"' | base64 -w0)
+      echo "Encoded payload: $PAYLOAD"
+      echo "$PAYLOAD" | base64 -d | bash
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "base64"
+    detection_notes: "base64 -d piped to bash/sh is a strong indicator of obfuscated command execution; EDR should flag this pattern"

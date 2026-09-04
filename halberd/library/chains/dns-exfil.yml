@@ -1,0 +1,12 @@
+id: chain-dns-exfil
+name: "Data Exfiltration via DNS"
+description: "Discovery, network recon, then data exfiltration over DNS tunneling"
+mitre_tactics: [discovery, exfiltration]
+tags: [exfiltration, dns, stealth]
+steps:
+  - technique: T1082
+    delay_after: 5
+  - technique: T1016
+    delay_after: 3
+  - technique: T1048.001
+    delay_after: 0

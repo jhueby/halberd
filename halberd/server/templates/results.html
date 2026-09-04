@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Results - Halberd BAS{% endblock %}
+{% block content %}
+<h1>Test Results</h1>
+
+<div class="table-wrap">
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Agent</th>
+            <th>Technique</th>
+            <th>Test</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in results %}
+        <tr>
+            <td>{{ r.id }}</td>
+            <td><code>{{ r.agent_id }}</code></td>
+            <td><code>{{ r.technique_id }}</code></td>
+            <td>{{ r.test_name }}</td>
+            <td><span class="status-{{ r.status }}">{{ r.status }}</span></td>
+            <td>{{ "%.2f"|format(r.duration) }}s</td>
+            <td>{{ r.timestamp.strftime('%Y-%m-%d %H:%M:%S') if r.timestamp else '' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not results %}
+        <tr><td colspan="7" class="empty">No results yet. Run a campaign or use the CLI.</td></tr>
+        {% endif %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+id: T1071.001
+name: "HTTP C2 Beacon"
+tactic: command-and-control
+technique: "Application Layer Protocol: Web Protocols"
+platforms: [linux]
+risk: medium
+description: "Simulates periodic HTTP beaconing to a C2 server"
+tests:
+  - name: "HTTP beacon simulation"
+    executor: bash
+    command: |
+      for i in 1 2 3; do
+        curl -s -o /dev/null -w "beacon $i: HTTP %{http_code} (%{time_total}s)\n" \
+          --max-time 3 https://example.com/ 2>/dev/null || echo "beacon $i: failed"
+        sleep 2
+      done
+      echo "beacon-simulation-complete"
+    cleanup: null
+    expected_artifacts:
+      - type: network
+        value: "Periodic HTTP requests to same host"
+      - type: process
+        value: "curl"
+    detection_notes: "Regular-interval HTTP requests to the same endpoint with uniform timing is a beaconing pattern; EDR should flag periodic outbound connections"

@@ -1,0 +1,27 @@
+id: T1003.008
+name: "Shadow File Read"
+tactic: credential-access
+technique: "OS Credential Dumping: /etc/passwd and /etc/shadow"
+platforms: [linux]
+risk: low
+description: "Attempts to read /etc/shadow to simulate credential harvesting"
+tests:
+  - name: "Read /etc/shadow"
+    executor: bash
+    elevation_required: true
+    command: |
+      cat /etc/shadow > /dev/null 2>&1 && echo "shadow-read-success" || echo "shadow-read-denied"
+    cleanup: null
+    expected_artifacts:
+      - type: file_read
+        value: "/etc/shadow"
+    detection_notes: "EDR should alert on non-root or unexpected process reading /etc/shadow"
+  - name: "Read /etc/passwd"
+    executor: bash
+    command: |
+      wc -l /etc/passwd
+    cleanup: null
+    expected_artifacts:
+      - type: file_read
+        value: "/etc/passwd"
+    detection_notes: "Reading /etc/passwd is common; flag only when combined with shadow access or exfil"

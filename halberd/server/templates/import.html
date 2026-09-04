@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Import - Halberd BAS{% endblock %}
+{% block content %}
+<h1>Import Attack Chain</h1>
+
+<div class="card">
+    <h3>Import from URL</h3>
+    <p>Paste a URL to a YAML chain definition (e.g. a raw GitHub link).</p>
+    <form hx-post="/api/library/import" hx-target="#import-result" hx-swap="innerHTML"
+          hx-headers='{"Content-Type": "application/json"}'
+          hx-vals='js:{source: document.getElementById("url-source").value, source_type: "url"}'>
+        <div class="form-group">
+            <label for="url-source">Chain YAML URL</label>
+            <input type="url" id="url-source" placeholder="https://raw.githubusercontent.com/..." required>
+        </div>
+        <button type="submit" class="btn">Import from URL</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Import from File Path</h3>
+    <p>Specify a local file path on the server.</p>
+    <form hx-post="/api/library/import" hx-target="#import-result" hx-swap="innerHTML"
+          hx-headers='{"Content-Type": "application/json"}'
+          hx-vals='js:{source: document.getElementById("file-source").value, source_type: "file"}'>
+        <div class="form-group">
+            <label for="file-source">Local Path</label>
+            <input type="text" id="file-source" placeholder="/path/to/chain.yml" required>
+        </div>
+        <button type="submit" class="btn">Import from File</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Import from Document (v2)</h3>
+    <p>In a future version, paste a blog post URL or upload a threat report and Halberd will
+       automatically extract the attack chain, mapping steps to MITRE ATT&amp;CK techniques.</p>
+    <button class="btn btn-disabled" disabled>Coming in v2</button>
+</div>
+
+<div id="import-result" class="card" style="display:none;"></div>
+
+<script>
+document.body.addEventListener('htmx:afterSwap', function(e) {
+    if (e.detail.target.id === 'import-result') {
+        e.detail.target.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+id: chain-persistence-backdoor
+name: "Persistence and C2 Backdoor"
+description: "Shell execution, cron persistence, then HTTP C2 beaconing"
+mitre_tactics: [execution, persistence, command-and-control]
+tags: [persistence, c2, backdoor]
+steps:
+  - technique: T1059.004
+    delay_after: 3
+  - technique: T1053.003
+    delay_after: 5
+  - technique: T1071.001
+    delay_after: 0

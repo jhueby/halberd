@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "halberd-bas"
+version = "0.1.0"
+description = "Open-source Breach and Attack Simulation for small teams"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [{name = "jhueby", email = "I_z_y@sbcglobal.net"}]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+dependencies = [
+    "click>=8.1",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+server = [
+    "fastapi>=0.104",
+    "uvicorn[standard]>=0.24",
+    "sqlalchemy>=2.0",
+    "aiosqlite>=0.19",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.6",
+    "httpx>=0.25",
+]
+agent = [
+    "httpx>=0.25",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.1",
+]
+
+[project.scripts]
+halberd = "halberd.cli:cli"
+
+[tool.setuptools.packages.find]
+include = ["halberd*"]
+
+[tool.setuptools.package-data]
+"halberd.library" = ["atomic/*.yml", "chains/*.yml"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

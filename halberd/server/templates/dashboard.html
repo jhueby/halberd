@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Halberd BAS{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ technique_count }}</div>
+        <div class="stat-label">Atomic Techniques</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ chain_count }}</div>
+        <div class="stat-label">Attack Chains</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ agent_count }}</div>
+        <div class="stat-label">Agents</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ campaign_count }}</div>
+        <div class="stat-label">Campaigns</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ result_count }}</div>
+        <div class="stat-label">Test Results</div>
+    </div>
+</div>
+
+<h2>ATT&amp;CK Coverage Heatmap</h2>
+<p class="subtitle">Green = tested &amp; passed | Yellow = tested &amp; failed | Red = not tested</p>
+
+<div class="heatmap">
+    {% for tactic in tactics_order %}
+    <div class="tactic-column">
+        <div class="tactic-header">{{ tactic | replace("-", " ") | title }}</div>
+        {% for item in coverage_data %}
+        {% if item.tactic == tactic %}
+        <div class="technique-cell {{ 'tested-pass' if item.status == 'success' else 'tested-fail' if item.status in ['failed', 'error'] else 'not-tested' }}"
+             title="{{ item.id }}: {{ item.name }} ({{ item.risk }})">
+            <span class="tech-id">{{ item.id }}</span>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+
+<h2>Quick Actions</h2>
+<div class="actions">
+    <a href="/library" class="btn">Browse Library</a>
+    <a href="/import" class="btn btn-secondary">Import Chain</a>
+</div>
+{% endblock %}

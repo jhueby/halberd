@@ -1,0 +1,22 @@
+id: T1016
+name: "Network Configuration Discovery"
+tactic: discovery
+technique: "System Network Configuration Discovery"
+platforms: [linux, windows]
+risk: safe
+description: "Enumerates network configuration to simulate attacker network reconnaissance"
+tests:
+  - name: "Linux network enumeration"
+    executor: bash
+    command: |
+      echo "=== Interfaces ===" && ip addr show 2>/dev/null || ifconfig
+      echo "=== Routes ===" && ip route show 2>/dev/null || route -n
+      echo "=== DNS ===" && cat /etc/resolv.conf
+      echo "=== ARP ===" && ip neigh show 2>/dev/null || arp -a
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "ip"
+      - type: file_read
+        value: "/etc/resolv.conf"
+    detection_notes: "Network enumeration commands in rapid succession from a non-admin shell are a recon indicator"

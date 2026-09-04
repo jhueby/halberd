@@ -1,0 +1,20 @@
+id: T1053.003
+name: "Cron Job Persistence"
+tactic: persistence
+technique: "Scheduled Task/Job: Cron"
+platforms: [linux, macos]
+risk: low
+description: "Creates a cron job to simulate persistence mechanism"
+tests:
+  - name: "User crontab entry"
+    executor: bash
+    command: |
+      (crontab -l 2>/dev/null; echo "# halberd-test") | crontab -
+    cleanup: |
+      crontab -l 2>/dev/null | grep -v "halberd-test" | crontab - 2>/dev/null || true
+    expected_artifacts:
+      - type: process
+        value: "crontab"
+      - type: file_modification
+        value: "/var/spool/cron/*"
+    detection_notes: "EDR should flag crontab modification, especially by non-system processes"

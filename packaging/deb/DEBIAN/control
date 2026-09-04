@@ -1,0 +1,12 @@
+Package: halberd-bas
+Version: 0.1.0
+Section: security
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.10), python3-pip
+Maintainer: jhueby <I_z_y@sbcglobal.net>
+Description: Halberd BAS - Open-source Breach and Attack Simulation
+ Lightweight breach and attack simulation platform for small teams.
+ Includes MITRE ATT&CK-mapped atomic techniques and multi-step attack
+ chains with a web dashboard for coverage visualization and reporting.
+Homepage: https://github.com/jhueby/halberd
