@@ -41,14 +41,6 @@ def run_test(
             error=str(e),
         )
 
-    if sandbox.dry_run:
-        return TestResult(
-            technique_id=technique.id,
-            test_name=test.name,
-            status="dry-run",
-            output=f"Would execute:\n{test.command}",
-        )
-
     plat = current_platform()
     if plat not in [p.value for p in technique.platforms]:
         return TestResult(
@@ -56,6 +48,14 @@ def run_test(
             test_name=test.name,
             status="skipped",
             error=f"Platform '{plat}' not supported (requires {[p.value for p in technique.platforms]})",
+        )
+
+    if sandbox.dry_run:
+        return TestResult(
+            technique_id=technique.id,
+            test_name=test.name,
+            status="dry-run",
+            output=f"Would execute:\n{test.command}",
         )
 
     start = time.monotonic()

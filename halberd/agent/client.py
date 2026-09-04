@@ -95,13 +95,13 @@ class AgentClient:
                 task = self.heartbeat()
                 if task:
                     self._execute_task(task)
+                time.sleep(self.poll_interval)
             except KeyboardInterrupt:
                 print("Agent stopped")
                 break
             except Exception as e:
                 print(f"Error: {e}")
-
-            time.sleep(self.poll_interval)
+                time.sleep(self.poll_interval)
 
     def _execute_task(self, task: dict) -> None:
         campaign_id = task.get("campaign_id", "unknown")

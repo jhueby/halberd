@@ -62,13 +62,24 @@ def create_app() -> FastAPI:
             techniques = load_all_atomics()
             chains = load_all_chains()
 
-            latest_results = (
+            from sqlalchemy import and_
+            subq = (
                 db.query(
                     TestRunResult.technique_id,
-                    TestRunResult.status,
-                    func.max(TestRunResult.timestamp).label("last_tested"),
+                    func.max(TestRunResult.timestamp).label("max_ts"),
                 )
                 .group_by(TestRunResult.technique_id)
+                .subquery()
+            )
+            latest_results = (
+                db.query(TestRunResult)
+                .join(
+                    subq,
+                    and_(
+                        TestRunResult.technique_id == subq.c.technique_id,
+                        TestRunResult.timestamp == subq.c.max_ts,
+                    ),
+                )
                 .all()
             )
             tested_map = {r.technique_id: r.status for r in latest_results}

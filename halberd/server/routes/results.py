@@ -82,16 +82,27 @@ def list_results(
 def get_coverage(db: Session = Depends(get_db)):
     techniques = load_all_atomics()
 
-    latest = (
+    from sqlalchemy import and_
+    subq = (
         db.query(
             TestRunResult.technique_id,
-            func.max(TestRunResult.timestamp).label("last_tested"),
-            TestRunResult.status,
+            func.max(TestRunResult.timestamp).label("max_ts"),
         )
         .group_by(TestRunResult.technique_id)
+        .subquery()
+    )
+    latest = (
+        db.query(TestRunResult)
+        .join(
+            subq,
+            and_(
+                TestRunResult.technique_id == subq.c.technique_id,
+                TestRunResult.timestamp == subq.c.max_ts,
+            ),
+        )
         .all()
     )
-    tested_map = {r.technique_id: (r.status, r.last_tested) for r in latest}
+    tested_map = {r.technique_id: (r.status, r.timestamp) for r in latest}
 
     coverage = []
     for t in techniques:

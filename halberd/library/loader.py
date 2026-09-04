@@ -27,10 +27,10 @@ def load_atomic(technique_id: str) -> AtomicTechnique:
 
 def load_all_atomics() -> list[AtomicTechnique]:
     techniques = []
-    for path in sorted(ATOMIC_DIR.glob("*.yml")):
+    for path in sorted(list(ATOMIC_DIR.glob("*.yml")) + list(ATOMIC_DIR.glob("*.yaml"))):
         try:
             techniques.append(AtomicTechnique(**_load_yaml(path)))
-        except (ValidationError, Exception) as e:
+        except Exception as e:
             print(f"Warning: skipping {path.name}: {e}")
     return techniques
 
@@ -48,10 +48,10 @@ def load_chain(chain_id: str) -> AttackChain:
 
 def load_all_chains() -> list[AttackChain]:
     chains = []
-    for path in sorted(CHAINS_DIR.glob("*.yml")):
+    for path in sorted(list(CHAINS_DIR.glob("*.yml")) + list(CHAINS_DIR.glob("*.yaml"))):
         try:
             chains.append(AttackChain(**_load_yaml(path)))
-        except (ValidationError, Exception) as e:
+        except Exception as e:
             print(f"Warning: skipping {path.name}: {e}")
     return chains
 

@@ -84,10 +84,10 @@ def check_for_update(force: bool = False) -> UpdateInfo | None:
     latest = release.get("tag_name", "").lstrip("v")
     html_url = release.get("html_url", f"https://github.com/{GITHUB_REPO}/releases")
 
-    _write_cache(latest, html_url)
-
     if not latest:
         return None
+
+    _write_cache(latest, html_url)
 
     is_newer = _parse_version(latest) > _parse_version(current)
     return UpdateInfo(current=current, latest=latest, url=html_url, is_newer=is_newer)

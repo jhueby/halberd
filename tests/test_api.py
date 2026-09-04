@@ -5,10 +5,9 @@ from halberd.server.app import create_app
 
 
 @pytest.fixture
-def client(tmp_path):
-    import os
+def client(tmp_path, monkeypatch):
     import halberd.server.app as app_module
-    os.environ["HALBERD_DATA_DIR"] = str(tmp_path)
+    monkeypatch.setenv("HALBERD_DATA_DIR", str(tmp_path))
     app_module._engine = None
     app_module._session_factory = None
     app = create_app()
