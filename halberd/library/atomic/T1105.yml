@@ -2,12 +2,13 @@ id: T1105
 name: "Ingress Tool Transfer"
 tactic: command-and-control
 technique: "Ingress Tool Transfer"
-platforms: [linux]
+platforms: [linux, windows, macos]
 risk: medium
 description: "Simulates downloading a tool from a remote server using common utilities"
 tests:
-  - name: "Download via curl"
+  - name: "Download via curl (Linux)"
     executor: bash
+    platforms: [linux]
     command: |
       TMPFILE=$(mktemp /tmp/halberd-download-XXXXXX)
       curl -s -o "$TMPFILE" --max-time 5 https://example.com/robots.txt 2>/dev/null || echo "curl-failed"
@@ -23,8 +24,9 @@ tests:
       - type: file_modification
         value: "/tmp/halberd-download-*"
     detection_notes: "EDR should correlate curl/wget downloads to temp directories with subsequent execution attempts"
-  - name: "Download via wget"
+  - name: "Download via wget (Linux)"
     executor: bash
+    platforms: [linux]
     command: |
       TMPFILE=$(mktemp /tmp/halberd-download-XXXXXX)
       wget -q -O "$TMPFILE" --timeout=5 https://example.com/robots.txt 2>/dev/null || echo "wget-failed"
@@ -38,3 +40,43 @@ tests:
       - type: network
         value: "HTTP GET to external host"
     detection_notes: "wget to a temp path followed by chmod +x is a classic tool staging pattern"
+  - name: "Download via Invoke-WebRequest (Windows)"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      $tmpFile = Join-Path $env:TEMP "halberd-download-$(Get-Random).txt"
+      try {
+        Invoke-WebRequest -Uri "https://example.com/robots.txt" -OutFile $tmpFile -TimeoutSec 5
+        Write-Output "Downloaded to: $tmpFile ($((Get-Item $tmpFile).Length) bytes)"
+      } catch {
+        Write-Output "download-failed: $_"
+      }
+      Remove-Item -Path $tmpFile -Force -ErrorAction SilentlyContinue
+    cleanup: |
+      Get-ChildItem $env:TEMP -Filter "halberd-download-*" | Remove-Item -Force -ErrorAction SilentlyContinue
+    expected_artifacts:
+      - type: process
+        value: "powershell"
+      - type: network
+        value: "HTTP GET to external host"
+      - type: file_modification
+        value: "%TEMP%\\halberd-download-*"
+    detection_notes: "Invoke-WebRequest to a temp file is a common tool staging technique; EDR should correlate with subsequent execution"
+  - name: "Download via curl (macOS)"
+    executor: bash
+    platforms: [macos]
+    command: |
+      TMPFILE=$(mktemp /tmp/halberd-download-XXXXXX)
+      curl -s -o "$TMPFILE" --max-time 5 https://example.com/robots.txt 2>/dev/null || echo "curl-failed"
+      echo "Downloaded to: $TMPFILE ($(wc -c < "$TMPFILE" 2>/dev/null || echo 0) bytes)"
+      rm -f "$TMPFILE"
+    cleanup: |
+      rm -f /tmp/halberd-download-* 2>/dev/null || true
+    expected_artifacts:
+      - type: process
+        value: "curl"
+      - type: network
+        value: "HTTP GET to external host"
+      - type: file_modification
+        value: "/tmp/halberd-download-*"
+    detection_notes: "macOS curl downloads to temp directories should be correlated with quarantine attribute checks"

@@ -1,0 +1,26 @@
+id: T1053.005
+name: "Scheduled Task Persistence"
+tactic: persistence
+technique: "Scheduled Task/Job: Scheduled Task"
+platforms: [windows]
+risk: low
+description: "Creates a Windows scheduled task to simulate persistence mechanism"
+tests:
+  - name: "Create scheduled task"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      $taskName = "HalberdTest-$(Get-Random -Minimum 1000 -Maximum 9999)"
+      $action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/C echo halberd-test > NUL"
+      $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(24)
+      Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Description "Halberd BAS test task" | Out-Null
+      Write-Output "Created scheduled task: $taskName"
+      Get-ScheduledTask -TaskName $taskName | Select-Object TaskName, State | Format-Table
+    cleanup: |
+      Get-ScheduledTask | Where-Object { $_.TaskName -like 'HalberdTest-*' } | Unregister-ScheduledTask -Confirm:$false -ErrorAction SilentlyContinue
+    expected_artifacts:
+      - type: process
+        value: "schtasks"
+      - type: registry
+        value: "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache"
+    detection_notes: "EDR should flag scheduled task creation, especially tasks that execute cmd.exe or powershell.exe"

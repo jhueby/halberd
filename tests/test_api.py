@@ -102,7 +102,7 @@ class TestAPI:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "cleaned"
-        assert len(data["actions"]) >= 15
+        assert len(data["actions"]) >= 10
 
     def test_cleanup_requires_target(self, client):
         resp = client.post("/api/library/cleanup", json={})

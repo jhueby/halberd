@@ -1,0 +1,29 @@
+id: T1222.001
+name: "Windows File Permission Modification"
+tactic: defense-evasion
+technique: "File and Directory Permissions Modification: Windows File and Directory Permissions Modification"
+platforms: [windows]
+risk: low
+description: "Modifies file permissions via icacls/PowerShell to simulate defense evasion"
+tests:
+  - name: "Modify file ACL with icacls"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      $tmpFile = Join-Path $env:TEMP "halberd-acl-test-$(Get-Random).txt"
+      Set-Content -Path $tmpFile -Value "test-payload"
+      Write-Output "Before:"
+      icacls $tmpFile
+      icacls $tmpFile /grant Everyone:F
+      Write-Output "After:"
+      icacls $tmpFile
+      Remove-Item -Path $tmpFile -Force
+      Write-Output "permission-modification-complete"
+    cleanup: |
+      Get-ChildItem $env:TEMP -Filter "halberd-acl-test-*" | Remove-Item -Force -ErrorAction SilentlyContinue
+    expected_artifacts:
+      - type: process
+        value: "icacls"
+      - type: file_modification
+        value: "%TEMP%\\halberd-acl-test-*"
+    detection_notes: "Granting Everyone:Full on files is suspicious; EDR should flag broad ACL modifications"

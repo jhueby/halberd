@@ -24,6 +24,32 @@ class TestResult:
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+def _shell_executable(executor: str) -> str | None:
+    if executor == "bash":
+        return "/bin/bash"
+    if executor == "zsh":
+        return "/bin/zsh"
+    if executor in ("powershell", "cmd", "python"):
+        return None
+    return None
+
+
+def _build_command(command: str, executor: str) -> str | list[str]:
+    if executor == "powershell":
+        return ["powershell", "-NoProfile", "-NonInteractive", "-Command", command]
+    if executor == "cmd":
+        return ["cmd", "/C", command]
+    if executor == "python":
+        return ["python3", "-c", command]
+    return command
+
+
+def _test_platforms(technique: AtomicTechnique, test: AtomicTest) -> list[str]:
+    if test.platforms:
+        return [p.value for p in test.platforms]
+    return [p.value for p in technique.platforms]
+
+
 def run_test(
     technique: AtomicTechnique,
     test: AtomicTest,
@@ -42,12 +68,13 @@ def run_test(
         )
 
     plat = current_platform()
-    if plat not in [p.value for p in technique.platforms]:
+    test_plats = _test_platforms(technique, test)
+    if plat not in test_plats:
         return TestResult(
             technique_id=technique.id,
             test_name=test.name,
             status="skipped",
-            error=f"Platform '{plat}' not supported (requires {[p.value for p in technique.platforms]})",
+            error=f"Platform '{plat}' not supported (requires {test_plats})",
         )
 
     if sandbox.dry_run:
@@ -55,15 +82,19 @@ def run_test(
             technique_id=technique.id,
             test_name=test.name,
             status="dry-run",
-            output=f"Would execute:\n{test.command}",
+            output=f"Would execute ({test.executor}):\n{test.command}",
         )
+
+    cmd = _build_command(test.command, test.executor)
+    use_shell = test.executor in ("bash", "zsh")
+    executable = _shell_executable(test.executor)
 
     start = time.monotonic()
     try:
         result = subprocess.run(
-            test.command,
-            shell=True,
-            executable="/bin/bash" if test.executor == "bash" else None,
+            cmd,
+            shell=use_shell,
+            executable=executable,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -97,10 +128,11 @@ def run_test(
 
     if test.cleanup and not sandbox.dry_run:
         try:
+            cleanup_cmd = _build_command(test.cleanup, test.executor)
             cleanup = subprocess.run(
-                test.cleanup,
-                shell=True,
-                executable="/bin/bash",
+                cleanup_cmd,
+                shell=use_shell,
+                executable=executable,
                 capture_output=True,
                 text=True,
                 timeout=30,

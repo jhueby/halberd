@@ -1,0 +1,41 @@
+id: T1543.004
+name: "Launch Agent Persistence"
+tactic: persistence
+technique: "Create or Modify System Process: Launch Agent"
+platforms: [macos]
+risk: low
+description: "Creates a macOS Launch Agent plist to simulate persistence mechanism"
+tests:
+  - name: "Create user Launch Agent"
+    executor: bash
+    platforms: [macos]
+    command: |
+      PLIST="$HOME/Library/LaunchAgents/com.halberd.test.plist"
+      mkdir -p "$HOME/Library/LaunchAgents"
+      cat > "$PLIST" << 'PLISTEOF'
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>Label</key>
+        <string>com.halberd.test</string>
+        <key>ProgramArguments</key>
+        <array>
+          <string>/bin/echo</string>
+          <string>halberd-persistence-test</string>
+        </array>
+        <key>RunAtLoad</key>
+        <false/>
+        <key>Disabled</key>
+        <true/>
+      </dict>
+      </plist>
+      PLISTEOF
+      echo "Created launch agent: $PLIST"
+      plutil -lint "$PLIST" 2>/dev/null || echo "plist validation skipped"
+    cleanup: |
+      rm -f "$HOME/Library/LaunchAgents/com.halberd.test.plist" 2>/dev/null || true
+    expected_artifacts:
+      - type: file_modification
+        value: "~/Library/LaunchAgents/com.halberd.test.plist"
+    detection_notes: "New LaunchAgent plist creation should trigger Endpoint Security framework notifications; flag unsigned or unusual agents"

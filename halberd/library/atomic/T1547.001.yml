@@ -1,0 +1,23 @@
+id: T1547.001
+name: "Registry Run Key Persistence"
+tactic: persistence
+technique: "Boot or Logon Autostart Execution: Registry Run Keys"
+platforms: [windows]
+risk: low
+description: "Adds a Registry Run key to simulate persistence via autostart"
+tests:
+  - name: "Add HKCU Run key"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      $keyPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+      $valueName = "HalberdTest"
+      Set-ItemProperty -Path $keyPath -Name $valueName -Value "cmd.exe /C echo halberd-persistence-test > NUL"
+      Write-Output "Added Run key: $valueName"
+      Get-ItemProperty -Path $keyPath -Name $valueName | Format-List
+    cleanup: |
+      Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "HalberdTest" -ErrorAction SilentlyContinue
+    expected_artifacts:
+      - type: registry
+        value: "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\HalberdTest"
+    detection_notes: "Registry Run key modifications are a classic persistence technique; EDR should flag new entries, especially those executing cmd.exe or powershell.exe"

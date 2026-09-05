@@ -28,7 +28,8 @@ class ExpectedArtifact(BaseModel):
 
 class AtomicTest(BaseModel):
     name: str
-    executor: str = Field(default="bash", description="Shell or executor: bash, powershell, python")
+    executor: str = Field(default="bash", description="Shell or executor: bash, powershell, cmd, python")
+    platforms: list[Platform] | None = Field(default=None, description="Platforms this test runs on; inherits from technique if omitted")
     command: str = Field(description="Command(s) to execute")
     cleanup: str | None = Field(default=None, description="Reversal command(s)")
     expected_artifacts: list[ExpectedArtifact] = Field(default_factory=list)
@@ -49,3 +50,11 @@ class AtomicTechnique(BaseModel):
     @property
     def risk_value(self) -> int:
         return RISK_ORDER[self.risk]
+
+    def tests_for_platform(self, platform: str) -> list[AtomicTest]:
+        result = []
+        for test in self.tests:
+            effective = [p.value for p in test.platforms] if test.platforms else [p.value for p in self.platforms]
+            if platform in effective:
+                result.append(test)
+        return result

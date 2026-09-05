@@ -6,8 +6,9 @@ platforms: [linux, macos]
 risk: safe
 description: "Executes commands via bash to simulate attacker command execution"
 tests:
-  - name: "Execute shell command"
+  - name: "Execute shell command (Linux)"
     executor: bash
+    platforms: [linux]
     command: |
       echo "halberd-test: $(whoami)@$(hostname) $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     cleanup: null
@@ -15,3 +16,13 @@ tests:
       - type: process
         value: "/bin/bash"
     detection_notes: "Baseline test - shell execution alone is normal; pair with suspicious commands for meaningful detection"
+  - name: "Execute shell command (macOS)"
+    executor: bash
+    platforms: [macos]
+    command: |
+      echo "halberd-test: $(whoami)@$(hostname) $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "/bin/bash"
+    detection_notes: "Baseline test - macOS may default to zsh but bash is still available and commonly used by attackers"

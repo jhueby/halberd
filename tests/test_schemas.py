@@ -78,3 +78,51 @@ class TestChainSchema:
             import_source="https://example.com/chain.yml",
         )
         assert c.import_source == "https://example.com/chain.yml"
+
+
+class TestPerPlatformTests:
+    def test_test_inherits_technique_platforms(self):
+        t = AtomicTechnique(
+            id="T0001", name="Multi", tactic="discovery", technique="T",
+            platforms=[Platform.LINUX, Platform.WINDOWS], description="T",
+            tests=[AtomicTest(name="default", command="echo")],
+        )
+        assert t.tests_for_platform("linux") == [t.tests[0]]
+        assert t.tests_for_platform("windows") == [t.tests[0]]
+
+    def test_test_overrides_platforms(self):
+        t = AtomicTechnique(
+            id="T0001", name="Multi", tactic="discovery", technique="T",
+            platforms=[Platform.LINUX, Platform.WINDOWS], description="T",
+            tests=[
+                AtomicTest(name="linux-only", command="uname", platforms=[Platform.LINUX]),
+                AtomicTest(name="win-only", command="hostname", executor="powershell", platforms=[Platform.WINDOWS]),
+            ],
+        )
+        linux_tests = t.tests_for_platform("linux")
+        assert len(linux_tests) == 1
+        assert linux_tests[0].name == "linux-only"
+
+        win_tests = t.tests_for_platform("windows")
+        assert len(win_tests) == 1
+        assert win_tests[0].name == "win-only"
+
+    def test_no_tests_for_unsupported_platform(self):
+        t = AtomicTechnique(
+            id="T0001", name="Linux Only", tactic="discovery", technique="T",
+            platforms=[Platform.LINUX], description="T",
+            tests=[AtomicTest(name="linux", command="echo", platforms=[Platform.LINUX])],
+        )
+        assert t.tests_for_platform("windows") == []
+
+    def test_test_platforms_field_optional(self):
+        test = AtomicTest(name="test", command="echo")
+        assert test.platforms is None
+
+    def test_test_with_powershell_executor(self):
+        test = AtomicTest(
+            name="win test", command="Get-Date",
+            executor="powershell", platforms=[Platform.WINDOWS],
+        )
+        assert test.executor == "powershell"
+        assert test.platforms == [Platform.WINDOWS]

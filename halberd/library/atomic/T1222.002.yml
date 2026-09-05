@@ -6,8 +6,9 @@ platforms: [linux, macos]
 risk: low
 description: "Modifies file permissions to simulate privilege escalation preparation"
 tests:
-  - name: "chmod test files"
+  - name: "chmod test files (Linux)"
     executor: bash
+    platforms: [linux]
     command: |
       TMPFILE=$(mktemp /tmp/halberd-chmod-XXXXXX)
       echo "test-payload" > "$TMPFILE"
@@ -24,3 +25,22 @@ tests:
       - type: file_modification
         value: "/tmp/halberd-chmod-*"
     detection_notes: "chmod 777 on executables or in sensitive directories is suspicious; EDR should flag world-writable permission changes"
+  - name: "chmod test files (macOS)"
+    executor: bash
+    platforms: [macos]
+    command: |
+      TMPFILE=$(mktemp /tmp/halberd-chmod-XXXXXX)
+      echo "test-payload" > "$TMPFILE"
+      echo "Before: $(ls -la $TMPFILE)"
+      chmod 777 "$TMPFILE"
+      echo "After:  $(ls -la $TMPFILE)"
+      rm -f "$TMPFILE"
+      echo "permission-modification-complete"
+    cleanup: |
+      rm -f /tmp/halberd-chmod-* 2>/dev/null || true
+    expected_artifacts:
+      - type: process
+        value: "chmod"
+      - type: file_modification
+        value: "/tmp/halberd-chmod-*"
+    detection_notes: "chmod 777 is suspicious on macOS; Endpoint Security framework should log ES_EVENT_TYPE_NOTIFY_SETMODE"

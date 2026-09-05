@@ -2,12 +2,13 @@ id: T1016
 name: "Network Configuration Discovery"
 tactic: discovery
 technique: "System Network Configuration Discovery"
-platforms: [linux, windows]
+platforms: [linux, windows, macos]
 risk: safe
 description: "Enumerates network configuration to simulate attacker network reconnaissance"
 tests:
   - name: "Linux network enumeration"
     executor: bash
+    platforms: [linux]
     command: |
       echo "=== Interfaces ===" && ip addr show 2>/dev/null || ifconfig
       echo "=== Routes ===" && ip route show 2>/dev/null || route -n
@@ -19,4 +20,36 @@ tests:
         value: "ip"
       - type: file_read
         value: "/etc/resolv.conf"
+    detection_notes: "Network enumeration commands in rapid succession from a non-admin shell are a recon indicator"
+  - name: "Windows network enumeration"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      Write-Output "=== Interfaces ==="
+      Get-NetIPAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, IPAddress | Format-Table
+      Write-Output "=== Routes ==="
+      Get-NetRoute -AddressFamily IPv4 | Select-Object DestinationPrefix, NextHop, InterfaceAlias | Format-Table
+      Write-Output "=== DNS ==="
+      Get-DnsClientServerAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, ServerAddresses | Format-Table
+      Write-Output "=== ARP ==="
+      Get-NetNeighbor | Where-Object { $_.State -ne 'Unreachable' } | Select-Object IPAddress, LinkLayerAddress | Format-Table
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "powershell"
+    detection_notes: "PowerShell network enumeration cmdlets in sequence indicate network reconnaissance"
+  - name: "macOS network enumeration"
+    executor: bash
+    platforms: [macos]
+    command: |
+      echo "=== Interfaces ===" && ifconfig
+      echo "=== Routes ===" && netstat -rn
+      echo "=== DNS ===" && scutil --dns | head -20
+      echo "=== ARP ===" && arp -a
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "ifconfig"
+      - type: process
+        value: "arp"
     detection_notes: "Network enumeration commands in rapid succession from a non-admin shell are a recon indicator"

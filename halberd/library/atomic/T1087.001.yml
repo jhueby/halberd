@@ -2,12 +2,13 @@ id: T1087.001
 name: "Local Account Enumeration"
 tactic: discovery
 technique: "Account Discovery: Local Account"
-platforms: [linux, windows]
+platforms: [linux, windows, macos]
 risk: safe
 description: "Enumerates local user accounts"
 tests:
-  - name: "List local accounts"
+  - name: "List local accounts (Linux)"
     executor: bash
+    platforms: [linux]
     command: |
       echo "=== Users with shells ===" && grep -v '/nologin\|/false' /etc/passwd
       echo "=== Groups ===" && cat /etc/group | head -20
@@ -19,3 +20,33 @@ tests:
       - type: file_read
         value: "/etc/group"
     detection_notes: "Reading /etc/sudoers from a non-admin process is a strong indicator of privilege escalation recon"
+  - name: "List local accounts (Windows)"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      Write-Output "=== Local Users ==="
+      Get-LocalUser | Select-Object Name, Enabled, LastLogon | Format-Table
+      Write-Output "=== Local Groups ==="
+      Get-LocalGroup | Select-Object Name, Description | Format-Table
+      Write-Output "=== Administrators ==="
+      Get-LocalGroupMember -Group "Administrators" 2>$null | Select-Object Name, ObjectClass | Format-Table
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "powershell"
+    detection_notes: "Enumerating local administrators is a key privilege escalation recon step; EDR should flag Get-LocalGroupMember queries"
+  - name: "List local accounts (macOS)"
+    executor: bash
+    platforms: [macos]
+    command: |
+      echo "=== Local Users ==="
+      dscl . -list /Users | grep -v '^_'
+      echo "=== Groups ==="
+      dscl . -list /Groups | grep -v '^_' | head -20
+      echo "=== Admin Users ==="
+      dscl . -read /Groups/admin GroupMembership 2>/dev/null || echo "access denied"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "dscl"
+    detection_notes: "dscl queries for admin group membership indicate privilege escalation recon on macOS"

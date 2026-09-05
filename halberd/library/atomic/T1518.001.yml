@@ -2,12 +2,13 @@ id: T1518.001
 name: "Security Software Discovery"
 tactic: discovery
 technique: "Software Discovery: Security Software Discovery"
-platforms: [linux, windows]
+platforms: [linux, windows, macos]
 risk: safe
 description: "Identifies installed security software and EDR agents"
 tests:
-  - name: "Detect security tools"
+  - name: "Detect security tools (Linux)"
     executor: bash
+    platforms: [linux]
     command: |
       echo "=== EDR/AV Processes ==="
       ps aux 2>/dev/null | grep -iE 'falcon|crowdstrike|cortex|traps|sentinel|defender|sophos|carbon|cylance|endgame|elastic-agent|osquery|wazuh|auditd' | grep -v grep || echo "none detected"
@@ -20,3 +21,35 @@ tests:
       - type: process
         value: "grep"
     detection_notes: "Grepping for EDR process names is a common pre-attack step; EDR should flag process enumeration targeting security tools"
+  - name: "Detect security tools (Windows)"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      Write-Output "=== Windows Defender Status ==="
+      Get-MpComputerStatus 2>$null | Select-Object AntivirusEnabled, RealTimeProtectionEnabled, AntivirusSignatureLastUpdated | Format-List
+      Write-Output "=== EDR/AV Processes ==="
+      Get-Process | Where-Object { $_.Name -match 'MsSense|CSFalcon|CylanceSvc|SentinelAgent|CarbonBlack|Tanium|Cortex|Sophos|elastic-agent|osqueryd' } | Select-Object Name, Id | Format-Table
+      Write-Output "=== Security Services ==="
+      Get-Service | Where-Object { $_.DisplayName -match 'Defender|CrowdStrike|Sentinel|Carbon|Cylance|Sophos|Cortex|Elastic' -and $_.Status -eq 'Running' } | Select-Object Name, DisplayName | Format-Table
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "powershell"
+    detection_notes: "Querying Defender status and enumerating EDR processes via PowerShell is a pre-attack recon step"
+  - name: "Detect security tools (macOS)"
+    executor: bash
+    platforms: [macos]
+    command: |
+      echo "=== EDR/AV Processes ==="
+      ps aux 2>/dev/null | grep -iE 'falcon|crowdstrike|cortex|sentinel|sophos|carbon|cylance|elastic-agent|osquery|santa' | grep -v grep || echo "none detected"
+      echo "=== XProtect ==="
+      system_profiler SPInstallHistoryDataType 2>/dev/null | grep -i xprotect | head -5 || echo "N/A"
+      echo "=== Gatekeeper ==="
+      spctl --status 2>/dev/null || echo "N/A"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "ps"
+      - type: process
+        value: "spctl"
+    detection_notes: "Checking Gatekeeper and XProtect status alongside EDR process enumeration indicates pre-attack recon on macOS"

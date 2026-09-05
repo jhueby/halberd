@@ -2,12 +2,13 @@ id: T1027
 name: "Base64 Obfuscation"
 tactic: defense-evasion
 technique: "Obfuscated Files or Information"
-platforms: [linux, windows]
+platforms: [linux, windows, macos]
 risk: safe
 description: "Encodes and decodes a payload using base64 to simulate command obfuscation"
 tests:
-  - name: "Base64 encode/decode execution"
+  - name: "Base64 encode/decode execution (bash)"
     executor: bash
+    platforms: [linux]
     command: |
       PAYLOAD=$(echo 'echo "halberd-obfuscation-test: $(whoami)"' | base64 -w0)
       echo "Encoded payload: $PAYLOAD"
@@ -17,3 +18,28 @@ tests:
       - type: process
         value: "base64"
     detection_notes: "base64 -d piped to bash/sh is a strong indicator of obfuscated command execution; EDR should flag this pattern"
+  - name: "Base64 encode/decode execution (PowerShell)"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      $cmd = 'Write-Output "halberd-obfuscation-test: $env:USERNAME"'
+      $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
+      Write-Output "Encoded payload: $encoded"
+      powershell -EncodedCommand $encoded
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "powershell"
+    detection_notes: "powershell -EncodedCommand is a classic obfuscation technique; EDR should flag encoded PowerShell execution"
+  - name: "Base64 encode/decode execution (macOS)"
+    executor: bash
+    platforms: [macos]
+    command: |
+      PAYLOAD=$(echo 'echo "halberd-obfuscation-test: $(whoami)"' | base64)
+      echo "Encoded payload: $PAYLOAD"
+      echo "$PAYLOAD" | base64 -D | bash
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "base64"
+    detection_notes: "base64 -D piped to bash is a strong indicator of obfuscated command execution"

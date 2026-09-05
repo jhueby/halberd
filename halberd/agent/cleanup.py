@@ -6,6 +6,8 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from halberd.agent.platform_info import current_platform
+from halberd.agent.runner import _build_command, _shell_executable
 from halberd.library.atomic_schema import AtomicTechnique
 from halberd.library.loader import load_all_atomics, load_atomic
 
@@ -62,13 +64,17 @@ class CleanupReport:
         return ", ".join(parts) if parts else "Nothing to clean"
 
 
-def _run_cleanup_command(command: str, timeout: int = 30) -> tuple[str, str, float, bool]:
+def _run_cleanup_command(command: str, executor: str = "bash", timeout: int = 30) -> tuple[str, str, float, bool]:
+    cmd = _build_command(command, executor)
+    use_shell = executor in ("bash", "zsh")
+    executable = _shell_executable(executor)
+
     start = time.monotonic()
     try:
         result = subprocess.run(
-            command,
-            shell=True,
-            executable="/bin/bash",
+            cmd,
+            shell=use_shell,
+            executable=executable,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -105,7 +111,10 @@ def clean_technique(
         ))
         return report
 
-    for test in technique.tests:
+    plat = current_platform()
+    tests = technique.tests_for_platform(plat)
+
+    for test in tests:
         if not test.cleanup:
             report.actions.append(CleanupAction(
                 technique_id=technique.id,
@@ -120,7 +129,7 @@ def clean_technique(
                 command=test.cleanup.strip(),
             ))
         else:
-            stdout, stderr, duration, ok = _run_cleanup_command(test.cleanup, timeout)
+            stdout, stderr, duration, ok = _run_cleanup_command(test.cleanup, test.executor, timeout)
             report.actions.append(CleanupAction(
                 technique_id=technique.id,
                 test_name=test.name,

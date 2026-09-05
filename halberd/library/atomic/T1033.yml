@@ -2,12 +2,13 @@ id: T1033
 name: "System Owner/User Discovery"
 tactic: discovery
 technique: "System Owner/User Discovery"
-platforms: [linux, windows]
+platforms: [linux, windows, macos]
 risk: safe
 description: "Identifies the current user and logged-in users"
 tests:
-  - name: "User enumeration"
+  - name: "Linux user enumeration"
     executor: bash
+    platforms: [linux]
     command: |
       echo "=== Current User ===" && whoami
       echo "=== User ID ===" && id
@@ -20,3 +21,34 @@ tests:
       - type: process
         value: "w"
     detection_notes: "User discovery commands are common; suspicious when executed by a service account or in a burst with other discovery commands"
+  - name: "Windows user enumeration"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      Write-Output "=== Current User ==="
+      whoami
+      Write-Output "=== User Details ==="
+      whoami /all
+      Write-Output "=== Logged In ==="
+      query user 2>$null
+      if (-not $?) { qwinsta 2>$null }
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "whoami"
+    detection_notes: "'whoami /all' enumerates group memberships and privileges; suspicious from a non-interactive session"
+  - name: "macOS user enumeration"
+    executor: bash
+    platforms: [macos]
+    command: |
+      echo "=== Current User ===" && whoami
+      echo "=== User ID ===" && id
+      echo "=== Logged In ===" && who
+      echo "=== Console User ===" && stat -f '%Su' /dev/console 2>/dev/null || echo "N/A"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "whoami"
+      - type: process
+        value: "who"
+    detection_notes: "User discovery commands are common; suspicious when executed by a service account or in a burst"

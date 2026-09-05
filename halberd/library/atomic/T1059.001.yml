@@ -1,0 +1,29 @@
+id: T1059.001
+name: "PowerShell Execution"
+tactic: execution
+technique: "Command and Scripting Interpreter: PowerShell"
+platforms: [windows]
+risk: safe
+description: "Executes commands via PowerShell to simulate attacker command execution"
+tests:
+  - name: "Execute PowerShell command"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      Write-Output "halberd-test: $env:USERNAME@$env:COMPUTERNAME $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ')"
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "powershell"
+    detection_notes: "Baseline PowerShell execution; pair with suspicious cmdlets for meaningful detection"
+  - name: "PowerShell with execution policy bypass"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      $script = { Write-Output "halberd-bypass-test: executed with policy bypass" }
+      powershell -ExecutionPolicy Bypass -Command $script
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "powershell"
+    detection_notes: "-ExecutionPolicy Bypass is a common attacker technique; EDR should flag PowerShell invocations with policy override"

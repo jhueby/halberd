@@ -2,12 +2,13 @@ id: T1070.004
 name: "Indicator Removal - File Deletion"
 tactic: defense-evasion
 technique: "Indicator Removal: File Deletion"
-platforms: [linux, windows]
+platforms: [linux, windows, macos]
 risk: low
 description: "Creates and deletes files to simulate evidence destruction"
 tests:
-  - name: "Create and delete test artifacts"
+  - name: "Create and delete test artifacts (Linux)"
     executor: bash
+    platforms: [linux]
     command: |
       TMPDIR=$(mktemp -d /tmp/halberd-test-XXXXXX)
       echo "sensitive-data-simulation" > "$TMPDIR/evidence.txt"
@@ -24,3 +25,42 @@ tests:
       - type: file_modification
         value: "/tmp/halberd-test-*"
     detection_notes: "Use of shred is a strong indicator of evidence destruction; EDR should flag shred or secure-delete operations"
+  - name: "Create and delete test artifacts (Windows)"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      $tmpDir = Join-Path $env:TEMP "halberd-test-$(Get-Random)"
+      New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
+      $evidence = Join-Path $tmpDir "evidence.txt"
+      Set-Content -Path $evidence -Value "sensitive-data-simulation"
+      Write-Output "Created: $evidence"
+      Remove-Item -Path $evidence -Force
+      Write-Output "Deleted: $evidence"
+      [System.IO.File]::WriteAllBytes((Join-Path $tmpDir "overwrite.bin"), (New-Object byte[] 4096))
+      Remove-Item -Path $tmpDir -Recurse -Force
+      Write-Output "indicator-removal-complete"
+    cleanup: |
+      Get-ChildItem $env:TEMP -Directory -Filter "halberd-test-*" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    expected_artifacts:
+      - type: process
+        value: "powershell"
+      - type: file_modification
+        value: "%TEMP%\\halberd-test-*"
+    detection_notes: "Writing zero-bytes before deletion simulates secure-delete; EDR should flag overwrite-then-delete patterns"
+  - name: "Create and delete test artifacts (macOS)"
+    executor: bash
+    platforms: [macos]
+    command: |
+      TMPDIR=$(mktemp -d /tmp/halberd-test-XXXXXX)
+      echo "sensitive-data-simulation" > "$TMPDIR/evidence.txt"
+      echo "Created: $TMPDIR/evidence.txt"
+      rm -f "$TMPDIR/evidence.txt"
+      echo "Deleted: $TMPDIR/evidence.txt"
+      rm -rf "$TMPDIR"
+      echo "indicator-removal-complete"
+    cleanup: |
+      rm -rf /tmp/halberd-test-* 2>/dev/null || true
+    expected_artifacts:
+      - type: file_modification
+        value: "/tmp/halberd-test-*"
+    detection_notes: "Rapid file creation and deletion in temp directories is suspicious; macOS Endpoint Security should log file unlink events"

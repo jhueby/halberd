@@ -101,8 +101,7 @@ def create_app() -> FastAPI:
                 "collection", "command-and-control", "exfiltration", "impact",
             ]
 
-            return templates.TemplateResponse("dashboard.html", {
-                "request": request,
+            return templates.TemplateResponse(request, "dashboard.html", {
                 "agent_count": agent_count,
                 "result_count": result_count,
                 "campaign_count": campaign_count,
@@ -120,8 +119,7 @@ def create_app() -> FastAPI:
 
         techniques = load_all_atomics()
         chains = load_all_chains()
-        return templates.TemplateResponse("library.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "library.html", {
             "techniques": techniques,
             "chains": chains,
         })
@@ -132,8 +130,7 @@ def create_app() -> FastAPI:
         try:
             from halberd.server.models import Campaign
             all_campaigns = db.query(Campaign).order_by(Campaign.created_at.desc()).all()
-            return templates.TemplateResponse("campaign.html", {
-                "request": request,
+            return templates.TemplateResponse(request, "campaign.html", {
                 "campaigns": all_campaigns,
             })
         finally:
@@ -150,8 +147,7 @@ def create_app() -> FastAPI:
                 .limit(100)
                 .all()
             )
-            return templates.TemplateResponse("results.html", {
-                "request": request,
+            return templates.TemplateResponse(request, "results.html", {
                 "results": all_results,
             })
         finally:
@@ -159,8 +155,6 @@ def create_app() -> FastAPI:
 
     @app.get("/import", response_class=HTMLResponse)
     def import_page(request: Request):
-        return templates.TemplateResponse("import.html", {
-            "request": request,
-        })
+        return templates.TemplateResponse(request, "import.html")
 
     return app

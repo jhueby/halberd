@@ -2,12 +2,13 @@ id: T1082
 name: "System Information Discovery"
 tactic: discovery
 technique: "System Information Discovery"
-platforms: [linux, windows]
+platforms: [linux, windows, macos]
 risk: safe
 description: "Collects system information to simulate attacker reconnaissance"
 tests:
   - name: "Linux system enumeration"
     executor: bash
+    platforms: [linux]
     command: |
       echo "=== Hostname ===" && hostname
       echo "=== Kernel ===" && uname -a
@@ -22,3 +23,41 @@ tests:
       - type: process
         value: "hostname"
     detection_notes: "Individual commands are benign; rapid sequential execution of multiple recon commands from a single parent is suspicious"
+  - name: "Windows system enumeration"
+    executor: powershell
+    platforms: [windows]
+    command: |
+      Write-Output "=== Hostname ==="
+      hostname
+      Write-Output "=== OS ==="
+      Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber | Format-List
+      Write-Output "=== CPU ==="
+      Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores | Format-List
+      Write-Output "=== Memory ==="
+      [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2).ToString() + " GB"
+      Write-Output "=== Disk ==="
+      Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='GB Free';E={[math]::Round($_.Free/1GB,2)}}, @{N='GB Used';E={[math]::Round($_.Used/1GB,2)}}
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "powershell"
+      - type: process
+        value: "hostname"
+    detection_notes: "WMI/CIM queries for system info in rapid succession indicate host reconnaissance"
+  - name: "macOS system enumeration"
+    executor: bash
+    platforms: [macos]
+    command: |
+      echo "=== Hostname ===" && hostname
+      echo "=== Kernel ===" && uname -a
+      echo "=== OS ===" && sw_vers
+      echo "=== CPU ===" && sysctl -n hw.ncpu
+      echo "=== Memory ===" && sysctl -n hw.memsize | awk '{printf "%.1f GB\n", $1/1073741824}'
+      echo "=== Disk ===" && df -h /
+    cleanup: null
+    expected_artifacts:
+      - type: process
+        value: "uname"
+      - type: process
+        value: "sw_vers"
+    detection_notes: "Rapid sequential execution of recon commands from a single parent is suspicious"
