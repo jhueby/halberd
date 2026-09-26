@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from halberd.server.models import Agent
 from halberd.server.schemas import AgentRegister, AgentInfo
 
+from halberd.server.auth import require_agent_key
+
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
 
@@ -20,7 +22,7 @@ def get_db():
         db.close()
 
 
-@router.post("/register")
+@router.post("/register", dependencies=[Depends(require_agent_key)])
 def register_agent(payload: AgentRegister, db: Session = Depends(get_db)):
     existing = db.query(Agent).filter(Agent.id == payload.agent_id).first()
     if existing:

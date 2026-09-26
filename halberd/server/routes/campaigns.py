@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from halberd.server.models import Campaign
 from halberd.server.schemas import CampaignCreate, CampaignInfo, TaskAssignment
 
+from halberd.server.auth import require_agent_key
+
 router = APIRouter(prefix="/api", tags=["campaigns"])
 
 
@@ -57,7 +59,7 @@ def start_campaign(campaign_id: int, db: Session = Depends(get_db)):
     return {"status": "running", "campaign_id": campaign_id}
 
 
-@router.get("/tasks/{agent_id}")
+@router.get("/tasks/{agent_id}", dependencies=[Depends(require_agent_key)])
 def get_task(agent_id: str, db: Session = Depends(get_db)):
     campaign = (
         db.query(Campaign)
