@@ -51,6 +51,7 @@ include = ["halberd*"]
 
 [tool.setuptools.package-data]
 "halberd.library" = ["atomic/*.yml", "chains/*.yml"]
+"halberd.server" = ["static/*", "static/**/*", "templates/*", "templates/**/*"]
 
 [tool.ruff]
 line-length = 100
