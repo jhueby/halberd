@@ -10,6 +10,8 @@ from halberd.library.loader import load_all_atomics
 from halberd.server.models import TestRunResult, Campaign
 from halberd.server.schemas import ResultsBatch, CoverageEntry
 
+from halberd.server.auth import require_agent_key
+
 router = APIRouter(prefix="/api/results", tags=["results"])
 
 
@@ -22,7 +24,7 @@ def get_db():
         db.close()
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(require_agent_key)])
 def submit_results(payload: ResultsBatch, db: Session = Depends(get_db)):
     campaign_id = None
     try:
