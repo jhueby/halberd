@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
-from halberd.server.models import Campaign
+from halberd.server.models import Agent, Campaign
 from halberd.server.schemas import CampaignCreate, CampaignInfo, TaskAssignment
 
 from halberd.server.auth import require_agent_key
@@ -61,6 +61,12 @@ def start_campaign(campaign_id: int, db: Session = Depends(get_db)):
 
 @router.get("/tasks/{agent_id}", dependencies=[Depends(require_agent_key)])
 def get_task(agent_id: str, db: Session = Depends(get_db)):
+    # The agent polls this on its interval; treat each poll as a heartbeat so
+    # last_seen reflects connectivity (register alone only stamps it at startup).
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if agent is not None:
+        agent.last_seen = datetime.now(timezone.utc)
+        db.commit()
     campaign = (
         db.query(Campaign)
         .filter(Campaign.status == "running")

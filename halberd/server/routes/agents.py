@@ -33,6 +33,7 @@ def register_agent(payload: AgentRegister, db: Session = Depends(get_db)):
         existing.user = payload.user
         existing.is_root = payload.is_root
         existing.python_version = payload.python_version
+        existing.version = payload.version
         existing.last_seen = datetime.now(timezone.utc)
     else:
         agent = Agent(
@@ -44,6 +45,7 @@ def register_agent(payload: AgentRegister, db: Session = Depends(get_db)):
             user=payload.user,
             is_root=payload.is_root,
             python_version=payload.python_version,
+            version=payload.version,
         )
         db.add(agent)
     db.commit()
