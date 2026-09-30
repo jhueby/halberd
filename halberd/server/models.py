@@ -23,6 +23,7 @@ class Agent(Base):
     user = Column(String(128))
     is_root = Column(String(8))
     python_version = Column(String(32))
+    version = Column(String(32))
     last_seen = Column(DateTime, default=_utcnow, onupdate=_utcnow)
     registered_at = Column(DateTime, default=_utcnow)
 

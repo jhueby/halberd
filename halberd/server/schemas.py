@@ -14,12 +14,14 @@ class AgentRegister(BaseModel):
     user: str = ""
     is_root: str = "false"
     python_version: str = ""
+    version: str = ""
 
 
 class AgentInfo(BaseModel):
     id: str
     hostname: str
     os: str
+    version: str | None = None
     last_seen: datetime | None = None
 
     model_config = {"from_attributes": True}

@@ -26,9 +26,12 @@ class AgentClient:
         self.agent_id = self.info["agent_id"]
 
     def _headers(self) -> dict[str, str]:
+        # A non-generic User-Agent is required: fronting proxies (e.g. Cloudflare
+        # Bot Fight Mode) reject the default httpx UA ("python-httpx/*").
         return {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
+            "User-Agent": f"halberd-agent/{self.info.get('version', 'dev')}",
         }
 
     def register(self) -> None:

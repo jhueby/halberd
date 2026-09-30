@@ -6,6 +6,14 @@ import socket
 import uuid
 
 
+def _agent_version() -> str:
+    try:
+        from importlib.metadata import version
+        return version("halberd-bas")
+    except Exception:
+        return "unknown"
+
+
 def get_platform_info() -> dict[str, str]:
     return {
         "hostname": socket.gethostname(),
@@ -16,6 +24,7 @@ def get_platform_info() -> dict[str, str]:
         "user": os.getenv("USER", os.getenv("USERNAME", "unknown")),
         "is_root": str(os.geteuid() == 0) if hasattr(os, "geteuid") else "false",
         "python_version": platform.python_version(),
+        "version": _agent_version(),
         "agent_id": _get_or_create_agent_id(),
     }
 

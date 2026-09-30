@@ -26,7 +26,21 @@ def get_session_factory(engine=None) -> sessionmaker[Session]:
     return sessionmaker(bind=engine)
 
 
+def _ensure_columns(engine) -> None:
+    # Additive migrations for existing SQLite DBs — create_all() makes missing
+    # tables but never adds columns to an existing one.
+    from sqlalchemy import text
+    wanted = {"agents": {"version": "VARCHAR(32)"}}
+    with engine.begin() as conn:
+        for table, cols in wanted.items():
+            have = {row[1] for row in conn.execute(text(f"PRAGMA table_info({table})"))}
+            for col, decl in cols.items():
+                if col not in have:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {decl}"))
+
+
 def init_db(engine=None) -> None:
     if engine is None:
         engine = get_engine()
     Base.metadata.create_all(engine)
+    _ensure_columns(engine)
