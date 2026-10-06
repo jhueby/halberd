@@ -177,7 +177,9 @@ def start_server(host: str, port: int, do_reload: bool):
 @click.option("--max-risk", type=click.Choice(["safe", "low", "medium", "high"]), default="medium")
 @click.option("--allow-root", is_flag=True)
 @click.option("--poll-interval", type=int, default=30, help="Polling interval in seconds")
-def start_agent(server_url: str, api_key: str, max_risk: str, allow_root: bool, poll_interval: int):
+@click.option("--exec-port", type=int, default=8899, help="Bundled executor port (0 disables)")
+def start_agent(server_url: str, api_key: str, max_risk: str, allow_root: bool,
+                poll_interval: int, exec_port: int):
     """Start the agent in polling mode (connects to a Halberd server)."""
     from halberd.agent.client import AgentClient
     from halberd.agent.sandbox import Sandbox
@@ -193,6 +195,17 @@ def start_agent(server_url: str, api_key: str, max_risk: str, allow_root: bool, 
     console.print(f"[bold]Starting Halberd agent[/]")
     console.print(f"Server: {server_url}")
     console.print(f"Max risk: {max_risk}")
+
+    # Bundled native executor: the tenant pushes tool commands here and the agent
+    # runs them on its own vantage (see halberd/agent/executor.py).
+    if exec_port:
+        try:
+            from halberd.agent.executor import start_executor
+            start_executor(api_key, port=exec_port)
+            console.print(f"Executor: listening on :{exec_port} (native subprocess)")
+        except Exception as e:
+            console.print(f"[yellow]Executor not started: {e}[/]")
+
     client.run_loop()
 
 
