@@ -173,7 +173,9 @@ def start_server(host: str, port: int, do_reload: bool):
 
 @cli.command("agent")
 @click.option("--server-url", required=True, help="Halberd server URL")
-@click.option("--api-key", required=True, help="API key for authentication")
+@click.option("--api-key", required=True, envvar="HALBERD_API_KEY",
+              help="API key for authentication (or set HALBERD_API_KEY to keep it "
+                   "off the command line / process list)")
 @click.option("--max-risk", type=click.Choice(["safe", "low", "medium", "high"]), default="medium")
 @click.option("--allow-root", is_flag=True)
 @click.option("--poll-interval", type=int, default=30, help="Polling interval in seconds")

@@ -11,30 +11,78 @@ from __future__ import annotations
 
 import hmac
 import json
+import os
+import platform
+import shutil
+import signal
 import subprocess
-import threading
 import time
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 MAX_OUTPUT = 200_000
 MAX_TIMEOUT = 1800
+_IS_WIN = platform.system().lower().startswith("win")
+
+
+def _shell_argv(cmd: str) -> list:
+    """How to invoke a command line on this OS. Windows has no /bin/bash, so run
+    through cmd.exe; macOS/Linux use a login bash (falls back to sh)."""
+    if _IS_WIN:
+        comspec = shutil.which("cmd") or "cmd.exe"
+        return [comspec, "/c", cmd]
+    bash = shutil.which("bash")
+    return [bash, "-lc", cmd] if bash else ["/bin/sh", "-lc", cmd]
+
+
+def _kill_tree(p) -> None:
+    """Kill the command AND its children. subprocess's own timeout kills only the
+    direct child (the shell), orphaning grandchildren (e.g. a slow `pip`/`nmap`)
+    that then keep running and can block the agent. So kill the whole tree."""
+    try:
+        if _IS_WIN:
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+        else:
+            os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+    except Exception:
+        try:
+            p.kill()
+        except Exception:
+            pass
 
 
 def run_command(cmd: str, timeout: int = 120) -> dict:
     """Run a command as a native subprocess on this host; return result dict.
-    Shared by the HTTP listener and the heartbeat command handler."""
+    Shared by the HTTP listener and the heartbeat command handler. OS-aware, and
+    on timeout the whole process tree is killed so nothing is left running."""
     timeout = max(1, min(int(timeout), MAX_TIMEOUT))
     t0 = time.time()
+    # new session (POSIX) / new process group (Windows) so the whole tree is
+    # killable as a unit on timeout.
+    kw = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if _IS_WIN else {"start_new_session": True}
     try:
-        p = subprocess.run(["/bin/bash", "-lc", cmd], capture_output=True,
-                           text=True, timeout=timeout)
+        p = subprocess.Popen(_shell_argv(cmd), stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, text=True, **kw)
+    except Exception as e:
+        return {"ok": False, "returncode": 1, "stdout": "",
+                "stderr": str(e)[:1000], "elapsed": round(time.time() - t0, 2)}
+    try:
+        out, err = p.communicate(timeout=timeout)
         return {"ok": p.returncode == 0, "returncode": p.returncode,
-                "stdout": p.stdout[:MAX_OUTPUT], "stderr": p.stderr[:MAX_OUTPUT],
+                "stdout": (out or "")[:MAX_OUTPUT], "stderr": (err or "")[:MAX_OUTPUT],
                 "elapsed": round(time.time() - t0, 2)}
     except subprocess.TimeoutExpired:
-        return {"ok": False, "returncode": 124, "stdout": "",
-                "stderr": "timed out after %ds" % timeout, "elapsed": timeout}
+        _kill_tree(p)
+        try:
+            out, err = p.communicate(timeout=5)
+        except Exception:
+            out, err = "", ""
+        return {"ok": False, "returncode": 124, "stdout": (out or "")[:MAX_OUTPUT],
+                "stderr": (("timed out after %ds\n" % timeout) + (err or ""))[:MAX_OUTPUT],
+                "elapsed": timeout}
     except Exception as e:
+        _kill_tree(p)
         return {"ok": False, "returncode": 1, "stdout": "",
                 "stderr": str(e)[:1000], "elapsed": round(time.time() - t0, 2)}
 
