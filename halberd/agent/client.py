@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 
 from halberd.agent.platform_info import get_platform_info
@@ -112,6 +113,10 @@ class AgentClient:
 
         print(f"Received task: {task_type} (campaign {campaign_id})")
 
+        if task_type == "decommission":
+            self._decommission()
+            return
+
         results: list[TestResult] = []
         if task_type == "technique":
             results = run_technique(task["technique_id"], self.sandbox)
@@ -121,3 +126,22 @@ class AgentClient:
 
         self.report_results(campaign_id, results)
         print(f"Reported {len(results)} results for campaign {campaign_id}")
+
+    def _decommission(self) -> None:
+        """Operator removed us from the dashboard: tell the server we're gone,
+        schedule our own teardown, and exit."""
+        print("Decommission requested by server — uninstalling self")
+        try:
+            import httpx
+            httpx.post(
+                f"{self.server_url}/api/agents/{self.agent_id}/uninstalled",
+                headers=self._headers(), timeout=10,
+            )
+        except Exception as e:
+            print(f"(confirm-uninstall failed, continuing: {e})")
+        try:
+            from halberd.agent.uninstall import self_uninstall
+            self_uninstall()
+        except Exception as e:
+            print(f"(teardown launch failed: {e})")
+        os._exit(0)

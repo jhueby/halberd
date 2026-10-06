@@ -15,6 +15,7 @@ class AgentRegister(BaseModel):
     is_root: str = "false"
     python_version: str = ""
     version: str = ""
+    ip: str = ""
 
 
 class AgentInfo(BaseModel):
@@ -22,6 +23,8 @@ class AgentInfo(BaseModel):
     hostname: str
     os: str
     version: str | None = None
+    ip: str | None = None
+    decommissioned: int | None = 0
     last_seen: datetime | None = None
 
     model_config = {"from_attributes": True}

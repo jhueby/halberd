@@ -24,6 +24,8 @@ class Agent(Base):
     is_root = Column(String(8))
     python_version = Column(String(32))
     version = Column(String(32))
+    ip = Column(String(256))                      # agent-reported IP(s); fallback = poll source IP
+    decommissioned = Column(Integer, default=0)   # 1 = operator asked it to uninstall itself
     last_seen = Column(DateTime, default=_utcnow, onupdate=_utcnow)
     registered_at = Column(DateTime, default=_utcnow)
 

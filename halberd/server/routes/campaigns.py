@@ -67,6 +67,9 @@ def get_task(agent_id: str, db: Session = Depends(get_db)):
     if agent is not None:
         agent.last_seen = datetime.now(timezone.utc)
         db.commit()
+        if getattr(agent, "decommissioned", 0):
+            # operator asked this agent to uninstall; tell it so on its next poll
+            return {"type": "decommission", "campaign_id": "decommission"}
     campaign = (
         db.query(Campaign)
         .filter(Campaign.status == "running")
