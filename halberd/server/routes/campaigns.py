@@ -70,6 +70,13 @@ def get_task(agent_id: str, db: Session = Depends(get_db)):
         if getattr(agent, "decommissioned", 0):
             # operator asked this agent to uninstall; tell it so on its next poll
             return {"type": "decommission", "campaign_id": "decommission"}
+        tgt = getattr(agent, "pinned_version", None)
+        if tgt and agent.version and agent.version != tgt:
+            # operator pinned this agent to a specific version; tell it to converge
+            import os
+            base = os.environ.get("AGENT_WHEEL_BASE", "https://ctf.j-huebner.com/agent").rstrip("/")
+            return {"type": "upgrade", "campaign_id": "upgrade", "version": tgt,
+                    "wheel": {"url": "%s/halberd_bas-%s-py3-none-any.whl" % (base, tgt)}}
     campaign = (
         db.query(Campaign)
         .filter(Campaign.status == "running")

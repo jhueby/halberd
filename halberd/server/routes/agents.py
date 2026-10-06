@@ -81,6 +81,21 @@ def get_agent(agent_id: str, db: Session = Depends(get_db)):
     return agent
 
 
+@router.patch("/{agent_id}", dependencies=[Depends(require_agent_key)])
+def set_pin(agent_id: str, payload: dict, db: Session = Depends(get_db)):
+    """Pin (or unpin) an agent to a specific version. On its next poll it
+    converges to the pin (up or down); an empty/None value clears the pin and
+    leaves the agent at whatever it is running."""
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    pv = (payload or {}).get("pinned_version")
+    pv = (str(pv).strip() or None) if pv not in (None, "", "latest") else None
+    agent.pinned_version = pv
+    db.commit()
+    return {"status": "ok", "agent_id": agent_id, "pinned_version": agent.pinned_version}
+
+
 @router.delete("/{agent_id}", dependencies=[Depends(require_agent_key)])
 def decommission_agent(agent_id: str, db: Session = Depends(get_db)):
     """Operator-initiated uninstall: flag the agent so it self-removes on its

@@ -26,6 +26,7 @@ class Agent(Base):
     version = Column(String(32))
     ip = Column(String(256))                      # agent-reported IP(s); fallback = poll source IP
     decommissioned = Column(Integer, default=0)   # 1 = operator asked it to uninstall itself
+    pinned_version = Column(String(32))           # operator-pinned target version; NULL = leave as-is
     last_seen = Column(DateTime, default=_utcnow, onupdate=_utcnow)
     registered_at = Column(DateTime, default=_utcnow)
 

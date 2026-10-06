@@ -25,6 +25,7 @@ class AgentInfo(BaseModel):
     version: str | None = None
     ip: str | None = None
     decommissioned: int | None = 0
+    pinned_version: str | None = None
     last_seen: datetime | None = None
 
     model_config = {"from_attributes": True}

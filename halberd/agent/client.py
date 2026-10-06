@@ -117,6 +117,16 @@ class AgentClient:
             self._decommission()
             return
 
+        if task_type == "upgrade":
+            url = (task.get("wheel") or {}).get("url") or task.get("wheel_url")
+            print(f"Upgrade directive -> {task.get('version')} ({url})")
+            try:
+                from halberd.agent.upgrade import self_upgrade
+                self_upgrade(url)
+            except Exception as e:
+                print(f"(upgrade launch failed: {e})")
+            return
+
         results: list[TestResult] = []
         if task_type == "technique":
             results = run_technique(task["technique_id"], self.sandbox)
