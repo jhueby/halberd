@@ -77,6 +77,16 @@ def get_task(agent_id: str, db: Session = Depends(get_db)):
             base = os.environ.get("AGENT_WHEEL_BASE", "https://ctf.j-huebner.com/agent").rstrip("/")
             return {"type": "upgrade", "campaign_id": "upgrade", "version": tgt,
                     "wheel": {"url": "%s/halberd_bas-%s-py3-none-any.whl" % (base, tgt)}}
+        # queued ad-hoc tool command (the agent runs it on its own vantage, reports back)
+        from halberd.server.models import AgentCommand
+        pend = (db.query(AgentCommand)
+                .filter(AgentCommand.agent_id == agent_id, AgentCommand.status == "pending")
+                .order_by(AgentCommand.id).first())
+        if pend:
+            pend.status = "sent"
+            db.commit()
+            return {"type": "command", "campaign_id": "command", "command_id": pend.id,
+                    "cmd": pend.cmd, "timeout": pend.timeout}
     campaign = (
         db.query(Campaign)
         .filter(Campaign.status == "running")

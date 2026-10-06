@@ -20,6 +20,25 @@ MAX_OUTPUT = 200_000
 MAX_TIMEOUT = 1800
 
 
+def run_command(cmd: str, timeout: int = 120) -> dict:
+    """Run a command as a native subprocess on this host; return result dict.
+    Shared by the HTTP listener and the heartbeat command handler."""
+    timeout = max(1, min(int(timeout), MAX_TIMEOUT))
+    t0 = time.time()
+    try:
+        p = subprocess.run(["/bin/bash", "-lc", cmd], capture_output=True,
+                           text=True, timeout=timeout)
+        return {"ok": p.returncode == 0, "returncode": p.returncode,
+                "stdout": p.stdout[:MAX_OUTPUT], "stderr": p.stderr[:MAX_OUTPUT],
+                "elapsed": round(time.time() - t0, 2)}
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "returncode": 124, "stdout": "",
+                "stderr": "timed out after %ds" % timeout, "elapsed": timeout}
+    except Exception as e:
+        return {"ok": False, "returncode": 1, "stdout": "",
+                "stderr": str(e)[:1000], "elapsed": round(time.time() - t0, 2)}
+
+
 def _make_handler(token: str):
     class Handler(BaseHTTPRequestHandler):
         def _authed(self) -> bool:
@@ -55,20 +74,7 @@ def _make_handler(token: str):
             cmd = (body.get("cmd") or "").strip()
             if not cmd:
                 return self._send(400, {"error": "cmd required"})
-            timeout = max(1, min(int(body.get("timeout") or 120), MAX_TIMEOUT))
-            t0 = time.time()
-            try:
-                p = subprocess.run(["/bin/bash", "-lc", cmd], capture_output=True,
-                                   text=True, timeout=timeout)
-                self._send(200, {"ok": p.returncode == 0, "returncode": p.returncode,
-                                 "stdout": p.stdout[:MAX_OUTPUT], "stderr": p.stderr[:MAX_OUTPUT],
-                                 "elapsed": round(time.time() - t0, 2)})
-            except subprocess.TimeoutExpired:
-                self._send(200, {"ok": False, "returncode": 124, "stdout": "",
-                                 "stderr": "timed out after %ds" % timeout, "elapsed": timeout})
-            except Exception as e:
-                self._send(200, {"ok": False, "returncode": 1, "stdout": "",
-                                 "stderr": str(e)[:1000], "elapsed": round(time.time() - t0, 2)})
+            self._send(200, run_command(cmd, body.get("timeout") or 120))
 
         def log_message(self, *a):  # silence default stderr logging
             pass

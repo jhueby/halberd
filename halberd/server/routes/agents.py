@@ -96,6 +96,49 @@ def set_pin(agent_id: str, payload: dict, db: Session = Depends(get_db)):
     return {"status": "ok", "agent_id": agent_id, "pinned_version": agent.pinned_version}
 
 
+@router.post("/{agent_id}/exec", dependencies=[Depends(require_agent_key)])
+def enqueue_command(agent_id: str, payload: dict, db: Session = Depends(get_db)):
+    """Queue a tool command for the agent; it runs on its next heartbeat."""
+    from halberd.server.models import AgentCommand
+    cmd = ((payload or {}).get("cmd") or "").strip()
+    if not cmd:
+        raise HTTPException(status_code=400, detail="cmd required")
+    to = max(1, min(int((payload or {}).get("timeout") or 120), 1800))
+    row = AgentCommand(agent_id=agent_id, cmd=cmd, timeout=to)
+    db.add(row); db.commit(); db.refresh(row)
+    return {"command_id": row.id, "status": "pending"}
+
+
+@router.get("/{agent_id}/commands/{command_id}", dependencies=[Depends(require_agent_key)])
+def get_command(agent_id: str, command_id: int, db: Session = Depends(get_db)):
+    from halberd.server.models import AgentCommand
+    r = db.query(AgentCommand).filter(AgentCommand.id == command_id,
+                                      AgentCommand.agent_id == agent_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="command not found")
+    return {"command_id": r.id, "status": r.status, "returncode": r.returncode,
+            "stdout": r.stdout, "stderr": r.stderr, "elapsed": r.elapsed}
+
+
+@router.post("/{agent_id}/command-result", dependencies=[Depends(require_agent_key)])
+def command_result(agent_id: str, payload: dict, db: Session = Depends(get_db)):
+    """Agent reports a queued command's result."""
+    from halberd.server.models import AgentCommand
+    cid = (payload or {}).get("command_id")
+    r = db.query(AgentCommand).filter(AgentCommand.id == cid,
+                                      AgentCommand.agent_id == agent_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="command not found")
+    r.returncode = payload.get("returncode")
+    r.stdout = (payload.get("stdout") or "")[:400000]
+    r.stderr = (payload.get("stderr") or "")[:100000]
+    r.elapsed = payload.get("elapsed")
+    r.status = "done"
+    r.finished_at = datetime.now(timezone.utc)
+    db.commit()
+    return {"status": "ok"}
+
+
 @router.delete("/{agent_id}", dependencies=[Depends(require_agent_key)])
 def decommission_agent(agent_id: str, db: Session = Depends(get_db)):
     """Operator-initiated uninstall: flag the agent so it self-removes on its

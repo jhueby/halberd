@@ -33,6 +33,25 @@ class Agent(Base):
     results = relationship("TestRunResult", back_populates="agent")
 
 
+class AgentCommand(Base):
+    """An ad-hoc tool command the tenant queues for an agent. The agent picks it
+    up on its heartbeat, runs it on its own vantage, and posts the result back —
+    the command channel for agents that are reachable only outbound (no inbound)."""
+    __tablename__ = "agent_commands"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    agent_id = Column(String(32), index=True)
+    cmd = Column(Text, nullable=False)
+    timeout = Column(Integer, default=120)
+    status = Column(String(16), default="pending")  # pending -> sent -> done
+    returncode = Column(Integer)
+    stdout = Column(Text)
+    stderr = Column(Text)
+    elapsed = Column(Float)
+    created_at = Column(DateTime, default=_utcnow)
+    finished_at = Column(DateTime)
+
+
 class Campaign(Base):
     __tablename__ = "campaigns"
 

@@ -99,7 +99,9 @@ class AgentClient:
                 task = self.heartbeat()
                 if task:
                     self._execute_task(task)
-                time.sleep(self.poll_interval)
+                # after handling something, re-poll quickly to drain a command burst;
+                # otherwise wait the normal heartbeat interval.
+                time.sleep(2 if task else self.poll_interval)
             except KeyboardInterrupt:
                 print("Agent stopped")
                 break
@@ -127,6 +129,10 @@ class AgentClient:
                 print(f"(upgrade launch failed: {e})")
             return
 
+        if task_type == "command":
+            self._run_command(task)
+            return
+
         results: list[TestResult] = []
         if task_type == "technique":
             results = run_technique(task["technique_id"], self.sandbox)
@@ -136,6 +142,27 @@ class AgentClient:
 
         self.report_results(campaign_id, results)
         print(f"Reported {len(results)} results for campaign {campaign_id}")
+
+    def _run_command(self, task: dict) -> None:
+        """Run a tenant-queued command on this host and post the result back."""
+        import httpx
+        cid = task.get("command_id")
+        cmd = task.get("cmd") or ""
+        to = int(task.get("timeout") or 120)
+        print(f"Command #{cid}: {cmd[:80]}")
+        from halberd.agent.executor import run_command
+        res = run_command(cmd, to)
+        try:
+            httpx.post(
+                f"{self.server_url}/api/agents/{self.agent_id}/command-result",
+                headers=self._headers(),
+                json={"command_id": cid, "returncode": res.get("returncode"),
+                      "stdout": res.get("stdout"), "stderr": res.get("stderr"),
+                      "elapsed": res.get("elapsed")},
+                timeout=30,
+            )
+        except Exception as e:
+            print(f"(command-result post failed: {e})")
 
     def _decommission(self) -> None:
         """Operator removed us from the dashboard: tell the server we're gone,
